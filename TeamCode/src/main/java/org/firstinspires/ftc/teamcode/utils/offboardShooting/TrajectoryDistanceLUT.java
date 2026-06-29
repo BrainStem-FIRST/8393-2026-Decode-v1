@@ -13,30 +13,6 @@ public class TrajectoryDistanceLUT {
         this.trajectoryLUTs = new ArrayList<>();
     }
 
-    public TrajectoryDistanceLUT(ArrayList<String> filePaths) {
-        this.trajectoryLUTs = new ArrayList<>();
-
-        for (String filepath : filePaths) {
-            JSONObject json = TrajectoryLoader.getJsonObject(filepath);
-            try {
-                double dy = json.getDouble("dy");
-                double dragCoeff = json.getDouble("dragCoeff");
-                double magnusCoeff = json.getDouble("magnusCoeff");
-                TrajectoryLUT trajectoryLUT = TrajectoryLoader.loadTrajectoryLUT(json, dy, dragCoeff, magnusCoeff);
-                if (trajectoryLUT == null)
-                    continue;
-                trajectoryLUTs.add(trajectoryLUT);
-            } catch (JSONException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        if (trajectoryLUTs.isEmpty())
-            throw new RuntimeException("No trajectory LUTs loaded from file paths");
-
-        trajectoryLUTs.sort(Comparator.comparingDouble(t -> t.distFromGoal));
-    }
-
     public boolean distanceInRange(double distFromGoal) {
         if (trajectoryLUTs.isEmpty())
             return false;

@@ -13,6 +13,7 @@ import java.util.stream.IntStream;
 public class Trajectory {
     public final double dragCoef;
     public final double magnusCoef;
+    public final double magnusPower;
     public final double exitSpeedMps;
     public final double exitAngleRad;
     public final double impactAngleRad;
@@ -24,6 +25,7 @@ public class Trajectory {
     public Trajectory(
             double dragCoef,
             double magnusCoef,
+            double magnusPower,
             double launchSpeedMps,
             double exitAngleRad,
             double impactAngleRad,
@@ -33,6 +35,7 @@ public class Trajectory {
             double exitAngleMOE) {
         this.dragCoef = dragCoef;
         this.magnusCoef = magnusCoef;
+        this.magnusPower = magnusPower;
         this.exitSpeedMps = launchSpeedMps;
         this.exitAngleRad = exitAngleRad;
         this.impactAngleRad = impactAngleRad;
@@ -54,6 +57,7 @@ public class Trajectory {
         return new Trajectory(
                 dragCoef,
                 magnusCoef,
+                magnusPower,
                 interpLaunchSpeed,
                 interpExitAngle,
                 interpImpactAngle,
@@ -79,6 +83,9 @@ public class Trajectory {
         if (numPoints <= 2)
             throw new IllegalArgumentException("numPoints must be at least 3");
 
+        if (sparsityForTelemetry <= 0)
+            throw new IllegalArgumentException("sparsityForTelemetry must be positive");
+
         double dt = timeOfFlight / (numPoints - 1);
 
         double x = startPosition.x;
@@ -96,6 +103,20 @@ public class Trajectory {
         double vy = launchVy + startVelocity.y;
         double vz = launchVz + startVelocity.z;
 
+        /*
+         * Horizontal spin axis.
+         *
+         * For turretAngleRad = 0:
+         * forward = +x
+         * spinAxis = +y
+         *
+         * cross(velocity, spinAxis) = +z, so positive magnusCoef gives upward lift.
+         * Negative magnusCoef flips the direction, representing topspin.
+         */
+        double spinAxisX = -Math.sin(turretAngleRad);
+        double spinAxisY = Math.cos(turretAngleRad);
+        double spinAxisZ = 0.0;
+
         points.add(new Vector3d(x, y, z));
 
         for (int i = 1; i < numPoints; i++) {
@@ -103,14 +124,64 @@ public class Trajectory {
 
             double azGravity = -9.81;
 
-            double axDrag = -dragCoef * speed * vx;
-            double ayDrag = -dragCoef * speed * vy;
-            double azDrag = -dragCoef * speed * vz;
+            double axDrag = 0.0;
+            double ayDrag = 0.0;
+            double azDrag = 0.0;
 
-            double azMagnus = magnusCoef * speed;
+            double axMagnus = 0.0;
+            double ayMagnus = 0.0;
+            double azMagnus = 0.0;
 
-            double ax = axDrag;
-            double ay = ayDrag;
+            if (speed > 1e-9) {
+                /*
+                 * Drag acceleration:
+                 * a_drag = -dragCoef * |v| * v
+                 *
+                 * This is equivalent to speed^2 drag because:
+                 * |v| * v has magnitude |v|^2.
+                 */
+                axDrag = -dragCoef * speed * vx;
+                ayDrag = -dragCoef * speed * vy;
+                azDrag = -dragCoef * speed * vz;
+
+                /*
+                 * Magnus direction:
+                 * perpendicular to velocity and spin axis.
+                 *
+                 * direction = normalize(cross(velocity, spinAxis))
+                 */
+                double magnusDirX = vy * spinAxisZ - vz * spinAxisY;
+                double magnusDirY = vz * spinAxisX - vx * spinAxisZ;
+                double magnusDirZ = vx * spinAxisY - vy * spinAxisX;
+
+                double magnusDirMag = Math.sqrt(
+                        magnusDirX * magnusDirX +
+                                magnusDirY * magnusDirY +
+                                magnusDirZ * magnusDirZ
+                );
+
+                if (magnusDirMag > 1e-9) {
+                    magnusDirX /= magnusDirMag;
+                    magnusDirY /= magnusDirMag;
+                    magnusDirZ /= magnusDirMag;
+
+                    /*
+                     * Magnus acceleration magnitude:
+                     * a_magnus = magnusCoef * speed^magnusPower
+                     *
+                     * magnusCoef > 0: backspin
+                     * magnusCoef < 0: topspin
+                     */
+                    double magnusAccel = magnusCoef * Math.pow(speed, magnusPower);
+
+                    axMagnus = magnusDirX * magnusAccel;
+                    ayMagnus = magnusDirY * magnusAccel;
+                    azMagnus = magnusDirZ * magnusAccel;
+                }
+            }
+
+            double ax = axDrag + axMagnus;
+            double ay = ayDrag + ayMagnus;
             double az = azGravity + azDrag + azMagnus;
 
             vx += ax * dt;
@@ -128,7 +199,10 @@ public class Trajectory {
                 .filter(i -> i % sparsityForTelemetry == 0)
                 .mapToObj(points::get)
                 .collect(Collectors.toCollection(ArrayList::new));
-        pointsToPublish.add(points.get(points.size() - 1));
+
+        if (!pointsToPublish.get(pointsToPublish.size() - 1).equals(points.get(points.size() - 1))) {
+            pointsToPublish.add(points.get(points.size() - 1));
+        }
 
         return pointsToPublish;
     }

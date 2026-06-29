@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 public class TrajectoryLoader {
 
-    public static Trajectory loadTrajectory(JSONObject json, double dragCoeff, double magnusCoeff) {
+    public static Trajectory loadTrajectory(JSONObject json, double dragCoeff, double magnusCoeff, double magnusPower) {
         try {
             double exitAngleDeg = json.getDouble("exitAngle");
             double speed = json.getDouble("speed");
@@ -25,6 +25,7 @@ public class TrajectoryLoader {
             return new Trajectory(
                     dragCoeff,
                     magnusCoeff,
+                    magnusPower,
                     speed,
                     Math.toRadians(exitAngleDeg),
                     Math.toRadians(impactAngleDeg),
@@ -39,7 +40,7 @@ public class TrajectoryLoader {
         }
     }
 
-    public static TrajectoryLUT loadTrajectoryLUT(JSONObject groupJson, double dy, double dragCoeff, double magnusCoeff) {
+    public static TrajectoryLUT loadTrajectoryLUT(JSONObject groupJson, double dy, double dragCoeff, double magnusCoeff, double magnusPower) {
         try {
             if (!groupJson.has("dx"))
                 return null;
@@ -50,7 +51,7 @@ public class TrajectoryLoader {
 
             for (int i = 0; i < trajectoryArray.length(); i++) {
                 JSONObject trajJson = trajectoryArray.getJSONObject(i);
-                Trajectory trajectory = loadTrajectory(trajJson, dragCoeff, magnusCoeff);
+                Trajectory trajectory = loadTrajectory(trajJson, dragCoeff, magnusCoeff, magnusPower);
                 if (trajectory == null)
                     return null;
                 trajectories.add(trajectory);
@@ -82,11 +83,12 @@ public class TrajectoryLoader {
             double dy = root.getDouble("dy");
             double dragCoeff = root.getDouble("dragCoeff");
             double magnusCoeff = root.getDouble("magnusCoeff");
+            double magnusPower = root.getDouble("magnusPower");
             JSONArray groups = root.getJSONArray("groups");
             ArrayList<TrajectoryLUT> trajectoryLUTs = new ArrayList<>();
 
             for (int i = 0; i < groups.length(); i++) {
-                TrajectoryLUT trajectoryLUT = loadTrajectoryLUT(groups.getJSONObject(i), dy, dragCoeff, magnusCoeff);
+                TrajectoryLUT trajectoryLUT = loadTrajectoryLUT(groups.getJSONObject(i), dy, dragCoeff, magnusCoeff, magnusPower);
                 if (trajectoryLUT != null)
                     trajectoryLUTs.add(trajectoryLUT);
             }

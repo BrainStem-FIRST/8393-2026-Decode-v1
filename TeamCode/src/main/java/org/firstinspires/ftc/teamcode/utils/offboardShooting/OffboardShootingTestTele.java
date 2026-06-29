@@ -17,7 +17,7 @@ import java.util.ArrayList;
 @TeleOp(name="OffboardShootingTestTele")
 @Config
 public class OffboardShootingTestTele extends OpMode {
-    public static double feetFromGoal;
+    public static double metersFromGoal;
 
     public enum ControlType {
         EXIT_SPEED,
@@ -47,7 +47,9 @@ public class OffboardShootingTestTele extends OpMode {
         batteryVoltageFilter.update();
 
         telemetry.addData("Control Type", controlType.name());
-        telemetry.addLine("Aiming " + feetFromGoal + "feet away");
+        telemetry.addLine("Aiming " + metersFromGoal + "meters away");
+        telemetry.addLine();
+        telemetry.addData("Distance In Range", trajectoryDistanceLUT.distanceInRange(metersFromGoal));
 
         Trajectory trajectory = chooseTrajectory(controlType);
 
@@ -80,7 +82,6 @@ public class OffboardShootingTestTele extends OpMode {
     }
 
     private Trajectory chooseTrajectory(ControlType controlType) {
-        double metersFromGoal = feetFromGoal * 3.28084;
 
         return switch (controlType) {
             case EXIT_SPEED ->
