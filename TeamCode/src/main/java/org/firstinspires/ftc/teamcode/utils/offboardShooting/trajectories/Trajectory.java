@@ -1,8 +1,7 @@
-package org.firstinspires.ftc.teamcode.utils.offboardShooting;
+package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
 import androidx.annotation.NonNull;
 
-import org.firstinspires.ftc.teamcode.utils.misc.TelemetryHelper;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.Vector3d;
 
 import java.text.DecimalFormat;

@@ -1,7 +1,4 @@
-package org.firstinspires.ftc.teamcode.utils.offboardShooting;
-
-import org.json.JSONException;
-import org.json.JSONObject;
+package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -11,22 +8,6 @@ public class TrajectoryDistanceLUT {
 
     private TrajectoryDistanceLUT() {
         this.trajectoryLUTs = new ArrayList<>();
-    }
-
-    public boolean distanceInRange(double distFromGoal) {
-        if (trajectoryLUTs.isEmpty())
-            return false;
-
-        return distFromGoal >= trajectoryLUTs.get(0).distFromGoal
-                && distFromGoal <= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal;
-    }
-
-    public boolean impactAngleInRange(double distFromGoal, double impactAngleRad) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return false;
-        return neighbors.loLUT.impactAngleInRange(impactAngleRad)
-                && neighbors.hiLUT.impactAngleInRange(impactAngleRad);
     }
 
     public Trajectory getInterpolatedOptimalTrajectory(double distFromGoal) {
@@ -143,7 +124,7 @@ public class TrajectoryDistanceLUT {
     }
 
     private NeighborTrajectoryInfo getNeighboringTrajectoryLUTs(double distFromGoal) {
-        if (!distanceInRange(distFromGoal))
+        if (!distanceInRange(distFromGoal) || trajectoryLUTs.isEmpty())
             return null;
 
         for (int i = 0; i < trajectoryLUTs.size() - 1; i++) {
@@ -162,9 +143,94 @@ public class TrajectoryDistanceLUT {
     private record NeighborTrajectoryInfo(TrajectoryLUT loLUT, TrajectoryLUT hiLUT, double loDist, double hiDist) {}
 
     public static TrajectoryDistanceLUT fromTrajectoryLUTs(ArrayList<TrajectoryLUT> trajectoryLUTs) {
+        if (trajectoryLUTs.isEmpty())
+            throw new IllegalArgumentException("trajectoryLUTs cannot be empty");
+        if (trajectoryLUTs.size() < 2)
+            throw new IllegalArgumentException("trajectoryLUTs must contain at least 2 elements");
+        for (int i = 0; i < trajectoryLUTs.size() - 1; i++) {
+            TrajectoryLUT loLUT = trajectoryLUTs.get(i);
+            TrajectoryLUT hiLUT = trajectoryLUTs.get(i + 1);
+            if (loLUT.distFromGoal >= hiLUT.distFromGoal)
+                throw new IllegalArgumentException("trajectoryLUTs must be sorted by distFromGoal");
+        }
+        
         TrajectoryDistanceLUT lut = new TrajectoryDistanceLUT();
         lut.trajectoryLUTs.addAll(trajectoryLUTs);
         lut.trajectoryLUTs.sort(Comparator.comparingDouble(t -> t.distFromGoal));
         return lut;
+    }
+
+    public double getRelGoalHeight() {
+        if (trajectoryLUTs.isEmpty())
+            return 0;
+        return trajectoryLUTs.get(0).relGoalHeight;
+    }
+    public boolean distanceInRange(double distFromGoal) {
+        if (trajectoryLUTs.isEmpty())
+            return false;
+
+        return distFromGoal >= trajectoryLUTs.get(0).distFromGoal
+                && distFromGoal <= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal;
+    }
+
+
+
+    public boolean exitSpeedInRange(double distFromGoal, double exitSpeedMps) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        if (neighbors == null)
+            return false;
+        return neighbors.loLUT.exitSpeedInRange(exitSpeedMps)
+                && neighbors.hiLUT.exitSpeedInRange(exitSpeedMps);
+    }
+    public boolean exitAngleInRange(double distFromGoal, double exitAngleRad) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        if (neighbors == null)
+            return false;
+        return neighbors.loLUT.exitAngleInRange(exitAngleRad)
+                && neighbors.hiLUT.exitAngleInRange(exitAngleRad);
+    }
+    public boolean impactAngleInRange(double distFromGoal, double impactAngleRad) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        if (neighbors == null)
+            return false;
+        return neighbors.loLUT.impactAngleInRange(impactAngleRad)
+                && neighbors.hiLUT.impactAngleInRange(impactAngleRad);
+    }
+
+    public double getMinExitSpeedMps(double distFromGoal) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        if (neighbors == null)
+            return 0;
+        return Math.max(neighbors.loLUT.getMinExitSpeedMps(), neighbors.hiLUT.getMinExitSpeedMps());
+    }
+    public double getMaxExitSpeedMps(double distFromGoal) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        if (neighbors == null)
+            return 0;
+        return Math.min(neighbors.loLUT.getMaxExitSpeedMps(), neighbors.hiLUT.getMaxExitSpeedMps());
+    }
+    public double getMinExitAngleRad(double distFromGoal) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        if (neighbors == null)
+            return 0;
+        return Math.max(neighbors.loLUT.getMinExitAngleRad(), neighbors.hiLUT.getMinExitAngleRad());
+    }
+    public double getMaxExitAngleRad(double distFromGoal) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        if (neighbors == null)
+            return 0;
+        return Math.min(neighbors.loLUT.getMaxExitAngleRad(), neighbors.hiLUT.getMaxExitAngleRad());
+    }
+    public double getMinImpactAngleRad(double distFromGoal) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        if (neighbors == null)
+            return 0;
+        return Math.max(neighbors.loLUT.getMinImpactAngleRad(), neighbors.hiLUT.getMinImpactAngleRad());
+    }
+    public double getMaxImpactAngleRad(double distFromGoal) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        if (neighbors == null)
+            return 0;
+        return Math.min(neighbors.loLUT.getMaxImpactAngleRad(), neighbors.hiLUT.getMaxImpactAngleRad());
     }
 }

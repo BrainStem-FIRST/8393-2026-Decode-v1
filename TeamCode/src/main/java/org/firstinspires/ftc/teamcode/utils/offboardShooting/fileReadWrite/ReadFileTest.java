@@ -1,13 +1,12 @@
-package org.firstinspires.ftc.teamcode.utils.offboardShooting;
+package org.firstinspires.ftc.teamcode.utils.offboardShooting.fileReadWrite;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryDistanceLUT;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryLoader;
 
 import java.io.File;
 
@@ -20,7 +19,7 @@ public class ReadFileTest extends OpMode {
         telemetry.addData("contents", contents.substring(0, 400));
         telemetry.update();
 
-        TrajectoryDistanceLUT lut = TrajectoryLoader.loadFromSettingsFile("mtiTrajectories.json");
+        TrajectoryDistanceLUT lut = TrajectoryLoader.loadTrajectoryDistanceLUT("mtiTrajectories.json");
         telemetry.addData("1m in range", lut.distanceInRange(1));
         telemetry.addData("3m in range", lut.distanceInRange(3));
         telemetry.addData("5m in range", lut.distanceInRange(5));

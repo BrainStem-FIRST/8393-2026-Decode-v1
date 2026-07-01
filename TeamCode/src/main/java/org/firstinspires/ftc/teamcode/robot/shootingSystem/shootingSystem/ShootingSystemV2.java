@@ -10,10 +10,10 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.robot.shootingSystem.shooter.ShooterV2;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.Trajectory;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.TrajectoryDistanceLUT;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.TrajectoryLoader;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.TrajectoryMath;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.Trajectory;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryDistanceLUT;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryLoader;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryMath;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.LaunchVector;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.ShootingMathNew;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.Vector3d;
@@ -38,7 +38,7 @@ public class ShootingSystemV2 extends ShootingSystem {
     public ShootingSystemV2(HardwareMap hardwareMap, Telemetry telemetry, Pose2d robotPose, Alliance alliance) {
         super(hardwareMap, telemetry, robotPose, alliance);
 
-        this.trajectoryDistanceLUT = TrajectoryLoader.loadFromSettingsFile("mtiTrajectories.json");
+        this.trajectoryDistanceLUT = TrajectoryLoader.loadTrajectoryDistanceLUT("mtiTrajectories.json");
     }
 
     @Override

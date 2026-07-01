@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.utils.offboardShooting;
+package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
@@ -102,7 +102,38 @@ public class TrajectoryLoader {
         }
     }
 
-    public static TrajectoryDistanceLUT loadFromSettingsFile(String filename) {
+    // returns the trajectoryLUT with the distance closest to distFromGoalMeters
+    public static TrajectoryLUT loadTrajectoryLUT(String filename, double distFromGoalMeters) {
+        JSONObject root = getJsonObject(filename);
+        try {
+            double dy = root.getDouble("dy");
+            double dragCoeff = root.getDouble("dragCoeff");
+            double magnusCoeff = root.getDouble("magnusCoeff");
+            double magnusPower = root.getDouble("magnusPower");
+            JSONArray groups = root.getJSONArray("groups");
+
+            double closestDistError = -1;
+            JSONObject closestGroup = null;
+            for (int i=0; i<groups.length(); i++) {
+                JSONObject group = groups.getJSONObject(i);
+                double distError = Math.abs(group.getDouble("dx") - distFromGoalMeters);
+                if (closestDistError == -1 || distError < closestDistError) {
+                    closestDistError = distError;
+                    closestGroup = group;
+                    if (distError == 0)
+                        break;
+                }
+            }
+            if (closestGroup == null)
+                    return null;
+
+            return loadTrajectoryLUT(closestGroup, dy, dragCoeff, magnusCoeff, magnusPower);
+        } catch (JSONException e) {
+            throw new RuntimeException("Failed to load trajectory group from " + filename + " with closest dx to " + distFromGoalMeters + "meters", e);
+        }
+    }
+
+    public static TrajectoryDistanceLUT loadTrajectoryDistanceLUT(String filename) {
         return loadTrajectoryDistanceLUT(getJsonObject(filename));
     }
 

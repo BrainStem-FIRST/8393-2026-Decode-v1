@@ -46,6 +46,9 @@ public abstract class Shooter extends Component {
         lowShooter.setPower(power);
         highShooter.setPower(power);
     }
+    public void stopMotor() {
+        setShooterPower(0);
+    }
     public void setShooterVoltage(double shooterVoltage, double batteryVoltage) {
         setShooterPower(shooterVoltage / batteryVoltage);
     }

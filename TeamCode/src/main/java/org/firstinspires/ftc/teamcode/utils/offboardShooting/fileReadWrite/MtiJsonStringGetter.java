@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.utils.offboardShooting;
+package org.firstinspires.ftc.teamcode.utils.offboardShooting.fileReadWrite;
 
 public final class MtiJsonStringGetter {
 

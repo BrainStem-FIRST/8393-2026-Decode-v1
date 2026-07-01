@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.utils.offboardShooting;
+package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -64,28 +64,37 @@ public class TrajectoryLUT {
             double hiRad = hi.impactAngleRad;
 
             if (impactAngleRad >= loRad && impactAngleRad <= hiRad) {
-                double t = (impactAngleRad - loRad) / (hiRad - loRad);
+                double diff = hiRad - loRad;
+                if (diff < 1e-3)
+                    return lo;
+                double t = (impactAngleRad - loRad) / diff;
                 return lo.lerp(hi, t);
             }
         }
         return null;
     }
 
-    public Trajectory getInterpolatedExitSpeedTrajectory(double exitSpeed) {
+    public Trajectory getInterpolatedExitSpeedTrajectory(double exitSpeedMps) {
         if (speedSortedTrajectories.isEmpty())
             return null;
 
-        if (exitSpeed <= speedSortedTrajectories.get(0).exitSpeedMps)
+        if (exitSpeedMps <= speedSortedTrajectories.get(0).exitSpeedMps)
             return speedSortedTrajectories.get(0);
-        if (exitSpeed >= speedSortedTrajectories.get(speedSortedTrajectories.size() - 1).exitSpeedMps)
+        if (exitSpeedMps >= speedSortedTrajectories.get(speedSortedTrajectories.size() - 1).exitSpeedMps)
             return speedSortedTrajectories.get(speedSortedTrajectories.size() - 1);
 
         for (int i = 0; i < speedSortedTrajectories.size() - 1; i++) {
             Trajectory lo = speedSortedTrajectories.get(i);
             Trajectory hi = speedSortedTrajectories.get(i + 1);
 
-            if (exitSpeed >= lo.exitSpeedMps && exitSpeed <= hi.exitSpeedMps) {
-                double t = (exitSpeed - lo.exitSpeedMps) / (hi.exitSpeedMps - lo.exitSpeedMps);
+            double loSpeed = lo.exitSpeedMps;
+            double hiSpeed = hi.exitSpeedMps;
+
+            if (exitSpeedMps >= loSpeed && exitSpeedMps <= hiSpeed) {
+                double diff = hiSpeed - loSpeed;
+                if (diff < 1e-3)
+                    return lo;
+                double t = (exitSpeedMps - loSpeed) / diff;
                 return lo.lerp(hi, t);
             }
         }
@@ -105,18 +114,55 @@ public class TrajectoryLUT {
             Trajectory lo = exitAngSortedTrajectories.get(i);
             Trajectory hi = exitAngSortedTrajectories.get(i + 1);
 
-            if (exitAngleRad >= lo.exitAngleRad && exitAngleRad <= hi.exitAngleRad) {
-                double t = (exitAngleRad - lo.exitAngleRad) / (hi.exitAngleRad - lo.exitAngleRad);
+            double loAng = lo.exitAngleRad;
+            double hiAng = hi.exitAngleRad;
+
+            if (exitAngleRad >= loAng && exitAngleRad <= hiAng) {
+                double diff = hiAng - loAng;
+                if (diff < 1e-3)
+                    return lo;
+                double t = (exitAngleRad - loAng) / diff;
                 return lo.lerp(hi, t);
             }
         }
         return null;
     }
 
+    public boolean exitSpeedInRange(double exitSpeedMps) {
+        if (speedSortedTrajectories.isEmpty())
+            return false;
+        return exitSpeedMps >= getMinExitSpeedMps() && exitSpeedMps <= getMaxExitSpeedMps();
+    }
+    public boolean exitAngleInRange(double exitAngleRad) {
+        if (exitAngSortedTrajectories.isEmpty())
+            return false;
+        return exitAngleRad >= getMinExitAngleRad() && exitAngleRad <= getMaxExitAngleRad();
+    }
     public boolean impactAngleInRange(double impactAngleRad) {
         if (impactAngSortedTrajectories.isEmpty())
             return false;
-        return impactAngleRad >= impactAngSortedTrajectories.get(0).impactAngleRad
-                && impactAngleRad <= impactAngSortedTrajectories.get(impactAngSortedTrajectories.size() - 1).impactAngleRad;
+        return impactAngleRad >= getMinImpactAngleRad() && impactAngleRad <= getMaxImpactAngleRad();
+    }
+
+    public int getNumTrajectories() {
+        return speedSortedTrajectories.size();
+    }
+    public double getMinExitSpeedMps() {
+        return speedSortedTrajectories.get(0).exitSpeedMps;
+    }
+    public double getMaxExitSpeedMps() {
+        return speedSortedTrajectories.get(speedSortedTrajectories.size() - 1).exitSpeedMps;
+    }
+    public double getMinExitAngleRad() {
+        return exitAngSortedTrajectories.get(0).exitAngleRad;
+    }
+    public double getMaxExitAngleRad() {
+        return exitAngSortedTrajectories.get(exitAngSortedTrajectories.size() - 1).exitAngleRad;
+    }
+    public double getMinImpactAngleRad() {
+        return impactAngSortedTrajectories.get(0).impactAngleRad;
+    }
+    public double getMaxImpactAngleRad() {
+        return impactAngSortedTrajectories.get(impactAngSortedTrajectories.size() - 1).impactAngleRad;
     }
 }

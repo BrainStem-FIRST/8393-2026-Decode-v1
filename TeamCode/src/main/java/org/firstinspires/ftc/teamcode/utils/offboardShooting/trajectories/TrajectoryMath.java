@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.utils.offboardShooting;
+package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
 import com.acmerobotics.roadrunner.Vector2d;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
