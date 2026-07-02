@@ -84,4 +84,23 @@ public record Vec2d(double x, double y) {
     public Vec2d unitVector() {
         return div(norm());
     }
+
+    public Angle2d angle() {
+        return Angle2d.fromRadians(Math.atan2(y, x));
+    }
+    /**
+     * Rotates a vector by this rotation.
+     *
+     * @param angle angle to rotate vector by
+     * @return rotated vector
+     */
+    public Vec2d rotate(Angle2d angle) {
+        double cos = angle.cos();
+        double sin = angle.sin();
+
+        return new Vec2d(
+                x * cos - y * sin,
+                x * sin + y * cos
+        );
+    }
 }

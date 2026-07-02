@@ -203,7 +203,7 @@ public class TrajectoryDistanceLUT {
     public Angle2d getMinExitAngle(double distFromGoal) {
         DistanceContext ctx = resolveDistanceContext(distFromGoal);
         if (ctx == null)
-            return Angle2d.fromDegrees(0);
+            return Angle2d.kZero;
         if (ctx.isSingle())
             return ctx.loLUT.getMinExitAngle();
         return ctx.loLUT.getMinExitAngle().lerp(ctx.hiLUT.getMinExitAngle(), ctx.blendT);
@@ -212,7 +212,7 @@ public class TrajectoryDistanceLUT {
     public Angle2d getMaxExitAngle(double distFromGoal) {
         DistanceContext ctx = resolveDistanceContext(distFromGoal);
         if (ctx == null)
-            return Angle2d.fromDegrees(0);
+            return Angle2d.kZero;
         if (ctx.isSingle())
             return ctx.loLUT.getMaxExitAngle();
         return ctx.loLUT.getMaxExitAngle().lerp(ctx.hiLUT.getMaxExitAngle(), ctx.blendT);

@@ -36,12 +36,29 @@ public class TrajectoryDistanceLUTTest extends OpMode {
         EXIT_ANGLE,
         OPTIMAL
     }
-    public static boolean setShooterHoodToTrajectory = false;
-    public static boolean useDynamicHood = false;
-    public static boolean runIntake = false;
-    public static boolean engageClutch = false;
-    public static ControlType controlType = ControlType.EXIT_SPEED;
-    public static double exitSpeedMps, exitAngleDeg;
+    public static class HardwareControls {
+        public boolean setShooterHoodToTrajectory = false;
+        public boolean runIntake = false;
+        public boolean engageClutch = false;
+    }
+    public static class ShootingControls {
+        public boolean useDynamicHood = false;
+        public ControlType controlType = ControlType.EXIT_SPEED;
+        public double[] robotLinearVel = new double[] { 0, 0 };
+        public Angle2d robotAngularVel = Angle2d.kZero;
+        public int numTofIterations = 5;
+    }
+    public static class ExitAngleControls {
+        public double exitAngleDeg;
+    }
+    public static class ExitSpeedControls {
+        public double exitSpeedMps;
+        public double exitAngleDeg;
+    }
+    public static HardwareControls hardwareControls = new HardwareControls();
+    public static ShootingControls shootingControls = new ShootingControls();
+    public static ExitAngleControls exitAngleControls = new ExitAngleControls();
+    public static ExitSpeedControls exitSpeedControls = new ExitSpeedControls();
     private TrajectoryDistanceLUT trajectoryDistanceLUT;
     private SRSHub srsHub;
     private ShooterV2 shooter;
@@ -52,9 +69,9 @@ public class TrajectoryDistanceLUTTest extends OpMode {
     private ElapsedTime timer;
     @Override
     public void init() {
-        setShooterHoodToTrajectory = false;
-        runIntake = false;
-        engageClutch = false;
+        hardwareControls.setShooterHoodToTrajectory = false;
+        hardwareControls.runIntake = false;
+        hardwareControls.engageClutch = false;
         reloadTrajectoryDistanceLUT();
         srsHub = new SRSHub(hardwareMap, telemetry);
         shooter = new ShooterV2(hardwareMap, telemetry, srsHub);
@@ -79,9 +96,9 @@ public class TrajectoryDistanceLUTTest extends OpMode {
         updateDriver1Controls();
         updateCollectorState();
 
-        telemetry.addData("SetShooterHoodToTrajectory", setShooterHoodToTrajectory);
-        telemetry.addData("RunIntake", runIntake);
-        telemetry.addData("EngageClutch", engageClutch);
+        telemetry.addData("SetShooterHoodToTrajectory", hardwareControls.setShooterHoodToTrajectory);
+        telemetry.addData("RunIntake", hardwareControls.runIntake);
+        telemetry.addData("EngageClutch", hardwareControls.engageClutch);
         telemetry.addLine();
 
         batteryVoltageFilter.update();
@@ -104,11 +121,11 @@ public class TrajectoryDistanceLUTTest extends OpMode {
 
         double curExitSpeedMps = ShooterV2.params.getMpsFunction.apply(shooter.getVelTps());
 
-        TrajectoryWrapper targetTrajectory = chooseTrajectory(controlType);
+        TrajectoryWrapper targetTrajectory = chooseTrajectory(shootingControls.controlType);
         TrajectoryWrapper compensatedTrajectory = trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(metersFromGoal, curExitSpeedMps, targetTrajectory.exitAngle);
-        TrajectoryWrapper commandedTrajectory = useDynamicHood ? compensatedTrajectory : targetTrajectory;
+        TrajectoryWrapper commandedTrajectory = shootingControls.useDynamicHood ? compensatedTrajectory : targetTrajectory;
 
-        telemetry.addData("Control Type", controlType.name());
+        telemetry.addData("Control Type", shootingControls.controlType.name());
         telemetry.addLine("Aiming " + metersFromGoal + " meters forward from exit position");
         telemetry.addLine("Aiming " + trajectoryDistanceLUT.getRelGoalHeight() + " meters up from exit position");
         telemetry.addData("DistanceInRange", trajectoryDistanceLUT.distanceInRange(metersFromGoal));
@@ -116,7 +133,7 @@ public class TrajectoryDistanceLUTTest extends OpMode {
         telemetry.addData("ShooterSpeedRange", df.format(trajectoryDistanceLUT.getMinExitSpeedMps(metersFromGoal)) + "-" + df.format(trajectoryDistanceLUT.getMaxExitSpeedMps(metersFromGoal, targetTrajectory.exitAngle)));
         telemetry.addData("ExitAngleRange", df.format(trajectoryDistanceLUT.getMinExitAngle(metersFromGoal).degrees()) + "-" + df.format(trajectoryDistanceLUT.getMaxExitAngle(metersFromGoal).degrees()));
         telemetry.addLine();
-        if (useDynamicHood) {
+        if (shootingControls.useDynamicHood) {
             telemetry.addData("Target Trajectory", targetTrajectory);
             telemetry.addLine("Target " + targetTrajectory.trajectoryType.name());
             telemetry.addData("Target OnTarget", targetTrajectory.onTarget);
@@ -128,14 +145,14 @@ public class TrajectoryDistanceLUTTest extends OpMode {
         else
             telemetry.addData("Chosen Trajectory", targetTrajectory);
         telemetry.addLine();
-        if (controlType == ControlType.EXIT_SPEED) {
-            telemetry.addData("ShooterSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, exitSpeedMps, targetTrajectory.exitAngle));
-            if (useDynamicHood)
+        if (shootingControls.controlType == ControlType.EXIT_SPEED) {
+            telemetry.addData("ShooterSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, exitSpeedControls.exitSpeedMps, targetTrajectory.exitAngle));
+            if (shootingControls.useDynamicHood)
                 telemetry.addData("CompensatedSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, curExitSpeedMps, targetTrajectory.exitAngle));
         }
-        else if (controlType == ControlType.EXIT_ANGLE)
-            telemetry.addData("ExitAngleInRange", trajectoryDistanceLUT.exitAngleInRange(metersFromGoal, Angle2d.fromDegrees(exitAngleDeg)));
-        else if (controlType == ControlType.OPTIMAL && useDynamicHood)
+        else if (shootingControls.controlType == ControlType.EXIT_ANGLE)
+            telemetry.addData("ExitAngleInRange", trajectoryDistanceLUT.exitAngleInRange(metersFromGoal, Angle2d.fromDegrees(exitAngleControls.exitAngleDeg)));
+        else if (shootingControls.controlType == ControlType.OPTIMAL && shootingControls.useDynamicHood)
             telemetry.addData("CompensatedSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, curExitSpeedMps, targetTrajectory.exitAngle));
 
         double targetShooterSpeedTps = ShooterV2.params.getTpsFunction.apply(targetTrajectory.exitSpeedMps);
@@ -149,9 +166,9 @@ public class TrajectoryDistanceLUTTest extends OpMode {
         telemetry.addData("shooterSpeedTargetMps", targetTrajectory.exitSpeedMps);
         telemetry.addData("shooterSpeedMOEMps", targetTrajectory.exitSpeedMOE);
         telemetry.addData("shooterSpeedInMOE", inSpeedMOE);
-        if (setShooterHoodToTrajectory) {
+        if (hardwareControls.setShooterHoodToTrajectory) {
             shooter.setShooterVelocityPID(targetShooterSpeedTps, batteryVoltageFilter.getVoltage());
-            if (useDynamicHood) {
+            if (shootingControls.useDynamicHood) {
                 double[] info = TrajectoryMath.calculateFilteredExitAngle(targetTrajectory, compensatedTrajectory);
                 hood.setTargetExitAngle(info[0]);
                 telemetry.addData("exitAngleTValue", info[1]);
@@ -173,7 +190,7 @@ public class TrajectoryDistanceLUTTest extends OpMode {
 
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
-        if (!setShooterHoodToTrajectory) {
+        if (!hardwareControls.setShooterHoodToTrajectory) {
             shooter.stopMotor();
         }
 
@@ -201,34 +218,34 @@ public class TrajectoryDistanceLUTTest extends OpMode {
     private TrajectoryWrapper chooseTrajectory(ControlType controlType) {
         return switch (controlType) {
             case EXIT_SPEED ->
-                    trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(metersFromGoal, exitSpeedMps, Angle2d.fromDegrees(exitAngleDeg));
+                    trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(metersFromGoal, exitSpeedControls.exitSpeedMps, Angle2d.fromDegrees(exitSpeedControls.exitAngleDeg));
             case EXIT_ANGLE ->
-                    trajectoryDistanceLUT.getInterpolatedExitAngleTrajectory(metersFromGoal, Angle2d.fromDegrees(exitAngleDeg));
+                    trajectoryDistanceLUT.getInterpolatedExitAngleTrajectory(metersFromGoal, Angle2d.fromDegrees(exitAngleControls.exitAngleDeg));
             case OPTIMAL -> trajectoryDistanceLUT.getInterpolatedOptimalTrajectory(metersFromGoal);
         };
     }
 
     private void updateDriver1Controls() {
         if (gamepad1.yWasPressed())
-            setShooterHoodToTrajectory = !setShooterHoodToTrajectory;
+            hardwareControls.setShooterHoodToTrajectory = !hardwareControls.setShooterHoodToTrajectory;
         if (gamepad1.bWasPressed()) {
-            engageClutch = !engageClutch;
-            if (engageClutch)
-                runIntake = false;
+            hardwareControls.engageClutch = !hardwareControls.engageClutch;
+            if (hardwareControls.engageClutch)
+                hardwareControls.runIntake = false;
         }
-        if (!engageClutch)
-            runIntake = gamepad1.right_trigger > 0.3;
+        if (!hardwareControls.engageClutch)
+            hardwareControls.runIntake = gamepad1.right_trigger > 0.3;
         else if (gamepad1.aWasPressed())
-                runIntake = !runIntake;
+            hardwareControls.runIntake = !hardwareControls.runIntake;
     }
 
     private void updateCollectorState() {
-        if (runIntake)
+        if (hardwareControls.runIntake)
             collector.setIntakeState(Collector.IntakeState.INTAKE);
         else
             collector.setIntakeState(Collector.IntakeState.OFF);
 
-        if (engageClutch)
+        if (hardwareControls.engageClutch)
             collector.setClutchState(Collector.ClutchState.ENGAGED);
         else
             collector.setClutchState(Collector.ClutchState.DISENGAGED);

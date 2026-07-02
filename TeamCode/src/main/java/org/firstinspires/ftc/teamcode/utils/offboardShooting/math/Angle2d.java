@@ -38,16 +38,6 @@ public record Angle2d(double radians) {
     }
 
     /**
-     * Creates the rotation pointing in the same direction as a 2D vector.
-     *
-     * @param v vector whose direction is used
-     * @return rotation with heading {@code atan2(v.y(), v.x())}
-     */
-    public static Angle2d fromVector(Vec2d v) {
-        return new Angle2d(Math.atan2(v.y(), v.x()));
-    }
-
-    /**
      * Gets this rotation in degrees.
      *
      * @return angle in degrees
@@ -142,22 +132,6 @@ public record Angle2d(double radians) {
     }
 
     /**
-     * Rotates a vector by this rotation.
-     *
-     * @param v vector to rotate
-     * @return rotated vector
-     */
-    public Vec2d rotate(Vec2d v) {
-        double cos = cos();
-        double sin = sin();
-
-        return new Vec2d(
-                v.x() * cos - v.y() * sin,
-                v.x() * sin + v.y() * cos
-        );
-    }
-
-    /**
      * Gets the signed shortest angular distance from this rotation to another rotation.
      *
      * @param other target rotation
@@ -206,4 +180,9 @@ public record Angle2d(double radians) {
     public Angle2d lerp(Angle2d other, double t) {
         return add(other.sub(this).times(t));
     }
+
+    public static Angle2d kZero = fromDegrees(0);
+    public static Angle2d k90 = fromDegrees(90);
+    public static Angle2d k180 = fromDegrees(180);
+    public static Angle2d k270 = fromDegrees(270);
 }

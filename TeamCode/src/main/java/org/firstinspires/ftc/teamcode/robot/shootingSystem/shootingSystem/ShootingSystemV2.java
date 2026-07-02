@@ -69,18 +69,18 @@ public class ShootingSystemV2 extends ShootingSystem {
                     v2Params.numIterations
             );
 
-            if(targetingInfo == null || targetingInfo.idealTargetTrajectory() == null)
+            if(targetingInfo == null || targetingInfo.targetTrajectory() == null)
                 return null;
 
-            double targetShooterSpeedTps = getTpsFromMps(targetingInfo.idealTargetTrajectory().exitSpeedMps);
+            double targetShooterSpeedTps = getTpsFromMps(targetingInfo.targetTrajectory().exitSpeedMps);
             telemetry.addData("targetShooterSpeedTps", targetShooterSpeedTps);
-            boolean foundActualTrajectory = targetingInfo.actualTargetTrajectory() != null;
+            boolean foundActualTrajectory = targetingInfo.compensatedTrajectory() != null;
             boolean useActualTrajectory = v2Params.useVelocityCompensation && foundActualTrajectory;
-            double idealExitAngleRad = targetingInfo.idealTargetTrajectory().exitAngle.radians();
-            double actualExitAngleRad = foundActualTrajectory ? targetingInfo.actualTargetTrajectory().exitAngle.radians() : idealExitAngleRad;
-            mostRecentTrajectory = useActualTrajectory ? targetingInfo.actualTargetTrajectory() : targetingInfo.idealTargetTrajectory();
+            double idealExitAngleRad = targetingInfo.targetTrajectory().exitAngle.radians();
+            double actualExitAngleRad = foundActualTrajectory ? targetingInfo.compensatedTrajectory().exitAngle.radians() : idealExitAngleRad;
+            mostRecentTrajectory = useActualTrajectory ? targetingInfo.compensatedTrajectory() : targetingInfo.targetTrajectory();
 
-            double targetTurretFieldAngleRad = (useActualTrajectory ? targetingInfo.actualTurretFieldAngle() : targetingInfo.idealTurretFieldAngle()).radians();
+            double targetTurretFieldAngleRad = (useActualTrajectory ? targetingInfo.compensatedTurretFieldAngle() : targetingInfo.turretAngle()).radians();
 
             mostRecentLaunchData = new LaunchData(targetShooterSpeedTps, idealExitAngleRad, actualExitAngleRad, targetTurretFieldAngleRad);
             return mostRecentLaunchData;
