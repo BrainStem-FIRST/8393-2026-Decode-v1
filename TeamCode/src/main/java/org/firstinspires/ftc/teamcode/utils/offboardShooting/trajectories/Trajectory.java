@@ -10,65 +10,85 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Trajectory {
-    public final double dragCoef;
-    public final double magnusCoef;
+    public final double dragCoeff;
+    public final double magnusCoeff;
     public final double magnusPower;
     public final double exitSpeedMps;
     public final double exitAngleRad;
-    public final double impactAngleRad;
-    public final double peakHeight;
     public final double timeOfFlight;
     public final double exitSpeedMOE;
-    public final double exitAngleMOE;
+    public final double exitAngleMOERad;
+    public final boolean onTarget;
 
     public Trajectory(
-            double dragCoef,
-            double magnusCoef,
+            double dragCoeff,
+            double magnusCoeff,
             double magnusPower,
             double launchSpeedMps,
             double exitAngleRad,
-            double impactAngleRad,
-            double peakHeight,
             double timeOfFlight,
             double exitSpeedMOE,
-            double exitAngleMOE) {
-        this.dragCoef = dragCoef;
-        this.magnusCoef = magnusCoef;
+            double exitAngleMOERad,
+            boolean onTarget) {
+        this.dragCoeff = dragCoeff;
+        this.magnusCoeff = magnusCoeff;
         this.magnusPower = magnusPower;
         this.exitSpeedMps = launchSpeedMps;
         this.exitAngleRad = exitAngleRad;
-        this.impactAngleRad = impactAngleRad;
-        this.peakHeight = peakHeight;
         this.timeOfFlight = timeOfFlight;
         this.exitSpeedMOE = exitSpeedMOE;
-        this.exitAngleMOE = exitAngleMOE;
+        this.exitAngleMOERad = exitAngleMOERad;
+        this.onTarget = onTarget;
     }
 
     public Trajectory lerp(Trajectory other, double t) {
         double interpLaunchSpeed = lerp(exitSpeedMps, other.exitSpeedMps, t);
         double interpExitAngle = lerp(exitAngleRad, other.exitAngleRad, t);
-        double interpImpactAngle = lerp(impactAngleRad, other.impactAngleRad, t);
-        double interpPeakHeight = lerp(peakHeight, other.peakHeight, t);
         double interpTOF = lerp(timeOfFlight, other.timeOfFlight, t);
         double interpSpeedMoe = lerp(exitSpeedMOE, other.exitSpeedMOE, t);
-        double interpAngleMoe = lerp(exitAngleMOE, other.exitAngleMOE, t);
+        double interpAngleMoe = lerp(exitAngleMOERad, other.exitAngleMOERad, t);
 
         return new Trajectory(
-                dragCoef,
-                magnusCoef,
+                dragCoeff,
+                magnusCoeff,
                 magnusPower,
                 interpLaunchSpeed,
                 interpExitAngle,
-                interpImpactAngle,
-                interpPeakHeight,
                 interpTOF,
                 interpSpeedMoe,
-                interpAngleMoe
+                interpAngleMoe,
+                onTarget && other.onTarget
         );
     }
 
-    private double lerp(double a, double b, double t) {
+
+    protected Trajectory invalidate() {
+        return new Trajectory(
+                dragCoeff,
+                magnusCoeff,
+                magnusPower,
+                exitSpeedMps,
+                exitAngleRad,
+                timeOfFlight,
+                exitSpeedMOE,
+                exitAngleMOERad,
+                false
+        );
+    }
+
+    protected double lerp(double a, double b, double t) {
         return a + (b - a) * t;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        DecimalFormat df = new DecimalFormat("0.000");
+        return "ExitSpeed" + df.format(exitSpeedMps) + "m/s | ExitAngle: " + df.format(Math.toDegrees(exitAngleRad)) + "deg | SpeedMOE: " + df.format(exitSpeedMOE) + "mps | AngleMOE: " + df.format(Math.toDegrees(exitAngleMOERad)) + "deg | ToF: " + df.format(timeOfFlight) + "s";
+    }
+    public String toStringShort() {
+        DecimalFormat df = new DecimalFormat("0.000");
+        return df.format(exitSpeedMps) + "m/s " + df.format(Math.toDegrees(exitAngleRad)) + "deg";
     }
 
     public ArrayList<Vector3d> simulateTrajectory(
@@ -139,9 +159,9 @@ public class Trajectory {
                  * This is equivalent to speed^2 drag because:
                  * |v| * v has magnitude |v|^2.
                  */
-                axDrag = -dragCoef * speed * vx;
-                ayDrag = -dragCoef * speed * vy;
-                azDrag = -dragCoef * speed * vz;
+                axDrag = -dragCoeff * speed * vx;
+                ayDrag = -dragCoeff * speed * vy;
+                azDrag = -dragCoeff * speed * vz;
 
                 /*
                  * Magnus direction:
@@ -171,7 +191,7 @@ public class Trajectory {
                      * magnusCoef > 0: backspin
                      * magnusCoef < 0: topspin
                      */
-                    double magnusAccel = magnusCoef * Math.pow(speed, magnusPower);
+                    double magnusAccel = magnusCoeff * Math.pow(speed, magnusPower);
 
                     axMagnus = magnusDirX * magnusAccel;
                     ayMagnus = magnusDirY * magnusAccel;
@@ -206,10 +226,4 @@ public class Trajectory {
         return pointsToPublish;
     }
 
-    @NonNull
-    @Override
-    public String toString() {
-        DecimalFormat df = new DecimalFormat("0.000");
-        return "ExitSpeed: " + df.format(exitSpeedMps) + "m/s | ExitAngle: " + df.format(Math.toDegrees(exitAngleRad)) + "deg | ToF: " + df.format(timeOfFlight) + "s";
-    }
 }

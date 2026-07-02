@@ -38,9 +38,10 @@ public class TrajectoryMath {
         Vector2d displacedGoal = goalPos;
         Vector2d turretToGoal;
         double distFromGoal = startDistFromGoalM;
+        Trajectory optimalTrajectory = trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal);
         Trajectory trajectory = useOptimalTrajectory
-            ? trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal)
-            : trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, speed);
+            ? optimalTrajectory
+            : trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, speed, optimalTrajectory.exitAngleRad);
 
         if (trajectory == null) return new TrajectoryGoalInfo(null, null, 0.0);
 
@@ -49,9 +50,10 @@ public class TrajectoryMath {
             turretToGoal = displacedGoal.minus(turretPos);
             distFromGoal = turretToGoal.norm();
 
+            optimalTrajectory = trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal);
             trajectory = useOptimalTrajectory
-                ? trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal)
-                : trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, speed);
+                ? optimalTrajectory
+                : trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, speed, optimalTrajectory.exitAngleRad);
 
             if (trajectory == null) return new TrajectoryGoalInfo(null, null, 0.0);
         }
@@ -135,5 +137,12 @@ public class TrajectoryMath {
             idealTurretFieldAngleRad,
             actualTurretFieldAngleRad
         );
+    }
+
+    public static double[] calculateFilteredExitAngle(Trajectory target, Trajectory compensated) {
+        double diff = Math.abs(compensated.exitSpeedMps - target.exitSpeedMps);
+        double t = Math.min(1, diff / target.exitSpeedMOE);
+        double exitAngle = target.lerp(compensated, t).exitAngleRad;
+        return new double[] { exitAngle, t };
     }
 }

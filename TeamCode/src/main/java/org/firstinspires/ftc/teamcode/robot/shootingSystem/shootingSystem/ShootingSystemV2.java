@@ -101,12 +101,6 @@ public class ShootingSystemV2 extends ShootingSystem {
 
     // not using right now
     public boolean onTarget(double distFromGoal, double exitSpeedMps, double exitAngleRad) {
-        Trajectory traj1 = trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, exitSpeedMps);
-        double exitAngleError = Math.abs(traj1.exitAngleRad - exitAngleRad);
-        if (exitAngleError < traj1.exitAngleMOE)
-            return true;
-        Trajectory traj2 = trajectoryDistanceLUT.getInterpolatedExitAngleTrajectory(distFromGoal, exitAngleRad);
-        double exitSpeedError = Math.abs(traj2.exitSpeedMps - exitSpeedMps);
-        return exitSpeedError < traj2.exitSpeedMOE;
+        return true;
     }
 }

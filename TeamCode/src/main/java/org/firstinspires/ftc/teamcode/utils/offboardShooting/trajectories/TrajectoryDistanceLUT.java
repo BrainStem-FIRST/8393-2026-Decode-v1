@@ -10,18 +10,13 @@ public class TrajectoryDistanceLUT {
         this.trajectoryLUTs = new ArrayList<>();
     }
 
-    public Trajectory getInterpolatedOptimalTrajectory(double distFromGoal) {
-        if (trajectoryLUTs.isEmpty())
-            return null;
-
+    public TrajectoryWrapper getInterpolatedOptimalTrajectory(double distFromGoal) {
         if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
-            return trajectoryLUTs.get(0).getOptimalTrajectory();
+            return trajectoryLUTs.get(0).getOptimalTrajectory().invalidate();
         if (distFromGoal >= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal)
-            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getOptimalTrajectory();
+            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getOptimalTrajectory().invalidate();
 
         NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return null;
 
         double distRange = neighbors.hiDist - neighbors.loDist;
         if (distRange <= 1e-9)
@@ -29,84 +24,38 @@ public class TrajectoryDistanceLUT {
 
         double t = (distFromGoal - neighbors.loDist) / distRange;
 
-        Trajectory loTraj = neighbors.loLUT.getOptimalTrajectory();
-        Trajectory hiTraj = neighbors.hiLUT.getOptimalTrajectory();
-
-        if (loTraj == null || hiTraj == null)
-            return null;
+        TrajectoryWrapper loTraj = neighbors.loLUT.getOptimalTrajectory();
+        TrajectoryWrapper hiTraj = neighbors.hiLUT.getOptimalTrajectory();
 
         return loTraj.lerp(hiTraj, t);
     }
 
-
-    public Trajectory getInterpolatedImpactAngleTrajectory(double distFromGoal, double impactAngleRad) {
-        if (trajectoryLUTs.isEmpty())
-            return null;
-
-        if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
-            return trajectoryLUTs.get(0).getInterpolatedImpactAngleTrajectory(impactAngleRad);
-        if (distFromGoal >= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal)
-            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedImpactAngleTrajectory(impactAngleRad);
+    public TrajectoryWrapper getInterpolatedExitSpeedTrajectory(double distFromGoal, double exitSpeed, double targetExitAngleRad) {
+        if (distFromGoal <= getMinDistance())
+            return trajectoryLUTs.get(0).getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad).invalidate();
+        if (distFromGoal >= getMaxDistance())
+            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad).invalidate();
 
         NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return null;
 
         double distRange = neighbors.hiDist - neighbors.loDist;
         if (distRange <= 1e-9)
-            return neighbors.loLUT.getInterpolatedImpactAngleTrajectory(impactAngleRad);
+            return neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad);
 
         double t = (distFromGoal - neighbors.loDist) / distRange;
-
-        Trajectory loTraj = neighbors.loLUT.getInterpolatedImpactAngleTrajectory(impactAngleRad);
-        Trajectory hiTraj = neighbors.hiLUT.getInterpolatedImpactAngleTrajectory(impactAngleRad);
-
-        if (loTraj == null || hiTraj == null)
-            return null;
+        TrajectoryWrapper loTraj = neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad);
+        TrajectoryWrapper hiTraj = neighbors.hiLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad);
 
         return loTraj.lerp(hiTraj, t);
     }
 
-    public Trajectory getInterpolatedExitSpeedTrajectory(double distFromGoal, double exitSpeed) {
-        if (trajectoryLUTs.isEmpty())
-            return null;
-
+    public TrajectoryWrapper getInterpolatedExitAngleTrajectory(double distFromGoal, double exitAngleRad) {
         if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
-            return trajectoryLUTs.get(0).getInterpolatedExitSpeedTrajectory(exitSpeed);
+            return trajectoryLUTs.get(0).getInterpolatedExitAngleTrajectory(exitAngleRad).invalidate();
         if (distFromGoal >= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal)
-            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitSpeedTrajectory(exitSpeed);
+            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitAngleTrajectory(exitAngleRad).invalidate();
 
         NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return null;
-
-        double distRange = neighbors.hiDist - neighbors.loDist;
-        if (distRange <= 1e-9)
-            return neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed);
-
-        double t = (distFromGoal - neighbors.loDist) / distRange;
-
-        Trajectory loTraj = neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed);
-        Trajectory hiTraj = neighbors.hiLUT.getInterpolatedExitSpeedTrajectory(exitSpeed);
-
-        if (loTraj == null || hiTraj == null)
-            return null;
-
-        return loTraj.lerp(hiTraj, t);
-    }
-
-    public Trajectory getInterpolatedExitAngleTrajectory(double distFromGoal, double exitAngleRad) {
-        if (trajectoryLUTs.isEmpty())
-            return null;
-
-        if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
-            return trajectoryLUTs.get(0).getInterpolatedExitAngleTrajectory(exitAngleRad);
-        if (distFromGoal >= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal)
-            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitAngleTrajectory(exitAngleRad);
-
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return null;
 
         double distRange = neighbors.hiDist - neighbors.loDist;
         if (distRange <= 1e-9)
@@ -114,18 +63,15 @@ public class TrajectoryDistanceLUT {
 
         double t = (distFromGoal - neighbors.loDist) / distRange;
 
-        Trajectory loTraj = neighbors.loLUT.getInterpolatedExitAngleTrajectory(exitAngleRad);
-        Trajectory hiTraj = neighbors.hiLUT.getInterpolatedExitAngleTrajectory(exitAngleRad);
-
-        if (loTraj == null || hiTraj == null)
-            return null;
+        TrajectoryWrapper loTraj = neighbors.loLUT.getInterpolatedExitAngleTrajectory(exitAngleRad);
+        TrajectoryWrapper hiTraj = neighbors.hiLUT.getInterpolatedExitAngleTrajectory(exitAngleRad);
 
         return loTraj.lerp(hiTraj, t);
     }
 
-    private NeighborTrajectoryInfo getNeighboringTrajectoryLUTs(double distFromGoal) {
-        if (!distanceInRange(distFromGoal) || trajectoryLUTs.isEmpty())
-            return null;
+    public NeighborTrajectoryInfo getNeighboringTrajectoryLUTs(double distFromGoal) {
+        if (!distanceInRange(distFromGoal))
+            throw new IllegalArgumentException("distance passed to getNeighboringTrajectoryLUTs must be in range. " + distFromGoal + " is not in the range of " + getMinDistance() + "-" + getMaxDistance());
 
         for (int i = 0; i < trajectoryLUTs.size() - 1; i++) {
             TrajectoryLUT loLUT = trajectoryLUTs.get(i);
@@ -137,10 +83,47 @@ public class TrajectoryDistanceLUT {
             if (distFromGoal >= loDist && distFromGoal <= hiDist)
                 return new NeighborTrajectoryInfo(loLUT, hiLUT, loDist, hiDist);
         }
-        return null;
+        throw new IllegalStateException("this should never happen in getNeighboringTrajectoryLUTs. distFromGoal: " + distFromGoal + " trajectoryLUTs: " + trajectoryLUTs);
     }
 
-    private record NeighborTrajectoryInfo(TrajectoryLUT loLUT, TrajectoryLUT hiLUT, double loDist, double hiDist) {}
+
+    public record NeighborTrajectoryInfo(TrajectoryLUT loLUT, TrajectoryLUT hiLUT, double loDist, double hiDist) {}
+
+    private record DistanceContext(TrajectoryLUT loLUT, TrajectoryLUT hiLUT, double blendT) {
+        static DistanceContext single(TrajectoryLUT lut) {
+            return new DistanceContext(lut, null, Double.NaN);
+        }
+        static DistanceContext blend(TrajectoryLUT loLUT, TrajectoryLUT hiLUT, double blendT) {
+            return new DistanceContext(loLUT, hiLUT, blendT);
+        }
+        boolean isSingle() {
+            return hiLUT == null;
+        }
+    }
+
+    /**
+     * Resolves which LUT(s) and blend weight apply at a distance, matching the interpolators'
+     * clamp and lerp behavior.
+     */
+    private DistanceContext resolveDistanceContext(double distFromGoal) {
+        if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
+            return DistanceContext.single(trajectoryLUTs.get(0));
+        if (distFromGoal >= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal)
+            return DistanceContext.single(trajectoryLUTs.get(trajectoryLUTs.size() - 1));
+
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+
+        double distRange = neighbors.hiDist - neighbors.loDist;
+        if (distRange <= 1e-9)
+            return DistanceContext.single(neighbors.loLUT);
+
+        double t = (distFromGoal - neighbors.loDist) / distRange;
+        return DistanceContext.blend(neighbors.loLUT, neighbors.hiLUT, t);
+    }
+
+    private static double lerp(double a, double b, double t) {
+        return a + (b - a) * t;
+    }
 
     public static TrajectoryDistanceLUT fromTrajectoryLUTs(ArrayList<TrajectoryLUT> trajectoryLUTs) {
         if (trajectoryLUTs.isEmpty())
@@ -153,7 +136,7 @@ public class TrajectoryDistanceLUT {
             if (loLUT.distFromGoal >= hiLUT.distFromGoal)
                 throw new IllegalArgumentException("trajectoryLUTs must be sorted by distFromGoal");
         }
-        
+
         TrajectoryDistanceLUT lut = new TrajectoryDistanceLUT();
         lut.trajectoryLUTs.addAll(trajectoryLUTs);
         lut.trajectoryLUTs.sort(Comparator.comparingDouble(t -> t.distFromGoal));
@@ -169,68 +152,57 @@ public class TrajectoryDistanceLUT {
         if (trajectoryLUTs.isEmpty())
             return false;
 
-        return distFromGoal >= trajectoryLUTs.get(0).distFromGoal
-                && distFromGoal <= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal;
+        return distFromGoal >= getMinDistance() && distFromGoal <= getMaxDistance();
     }
-
-
-
-    public boolean exitSpeedInRange(double distFromGoal, double exitSpeedMps) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return false;
-        return neighbors.loLUT.exitSpeedInRange(exitSpeedMps)
-                && neighbors.hiLUT.exitSpeedInRange(exitSpeedMps);
+    public boolean exitSpeedInRange(double distFromGoal, double exitSpeedMps, double targetExitAngleRad) {
+        return exitSpeedMps >= getMinExitSpeedMps(distFromGoal) && exitSpeedMps <= getMaxExitSpeedMps(distFromGoal, targetExitAngleRad);
     }
     public boolean exitAngleInRange(double distFromGoal, double exitAngleRad) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return false;
-        return neighbors.loLUT.exitAngleInRange(exitAngleRad)
-                && neighbors.hiLUT.exitAngleInRange(exitAngleRad);
-    }
-    public boolean impactAngleInRange(double distFromGoal, double impactAngleRad) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return false;
-        return neighbors.loLUT.impactAngleInRange(impactAngleRad)
-                && neighbors.hiLUT.impactAngleInRange(impactAngleRad);
+        return exitAngleRad >= getMinExitAngleRad(distFromGoal) && exitAngleRad <= getMaxExitAngleRad(distFromGoal);
     }
 
+    public double getMinDistance() {
+        return trajectoryLUTs.get(0).distFromGoal;
+    }
+    public double getMaxDistance() {
+        return trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal;
+    }
     public double getMinExitSpeedMps(double distFromGoal) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
+        DistanceContext ctx = resolveDistanceContext(distFromGoal);
+        if (ctx == null)
             return 0;
-        return Math.max(neighbors.loLUT.getMinExitSpeedMps(), neighbors.hiLUT.getMinExitSpeedMps());
+        if (ctx.isSingle())
+            return ctx.loLUT.getMinExitSpeedMps();
+        return lerp(ctx.loLUT.getMinExitSpeedMps(), ctx.hiLUT.getMinExitSpeedMps(), ctx.blendT);
     }
-    public double getMaxExitSpeedMps(double distFromGoal) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
+
+    public double getMaxExitSpeedMps(double distFromGoal, double targetExitAngleRad) {
+        DistanceContext ctx = resolveDistanceContext(distFromGoal);
+        if (ctx == null)
             return 0;
-        return Math.min(neighbors.loLUT.getMaxExitSpeedMps(), neighbors.hiLUT.getMaxExitSpeedMps());
+        if (ctx.isSingle())
+            return ctx.loLUT.getMaxExitSpeedMps(targetExitAngleRad);
+        return lerp(
+                ctx.loLUT.getMaxExitSpeedMps(targetExitAngleRad),
+                ctx.hiLUT.getMaxExitSpeedMps(targetExitAngleRad),
+                ctx.blendT);
     }
+
     public double getMinExitAngleRad(double distFromGoal) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
+        DistanceContext ctx = resolveDistanceContext(distFromGoal);
+        if (ctx == null)
             return 0;
-        return Math.max(neighbors.loLUT.getMinExitAngleRad(), neighbors.hiLUT.getMinExitAngleRad());
+        if (ctx.isSingle())
+            return ctx.loLUT.getMinExitAngleRad();
+        return lerp(ctx.loLUT.getMinExitAngleRad(), ctx.hiLUT.getMinExitAngleRad(), ctx.blendT);
     }
+
     public double getMaxExitAngleRad(double distFromGoal) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
+        DistanceContext ctx = resolveDistanceContext(distFromGoal);
+        if (ctx == null)
             return 0;
-        return Math.min(neighbors.loLUT.getMaxExitAngleRad(), neighbors.hiLUT.getMaxExitAngleRad());
-    }
-    public double getMinImpactAngleRad(double distFromGoal) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return 0;
-        return Math.max(neighbors.loLUT.getMinImpactAngleRad(), neighbors.hiLUT.getMinImpactAngleRad());
-    }
-    public double getMaxImpactAngleRad(double distFromGoal) {
-        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
-        if (neighbors == null)
-            return 0;
-        return Math.min(neighbors.loLUT.getMaxImpactAngleRad(), neighbors.hiLUT.getMaxImpactAngleRad());
+        if (ctx.isSingle())
+            return ctx.loLUT.getMaxExitAngleRad();
+        return lerp(ctx.loLUT.getMaxExitAngleRad(), ctx.hiLUT.getMaxExitAngleRad(), ctx.blendT);
     }
 }

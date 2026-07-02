@@ -17,10 +17,8 @@ public class TrajectoryLoader {
             double exitAngleDeg = json.getDouble("exitAngle");
             double speed = json.getDouble("speed");
             double timeOfFlight = json.getDouble("tof");
-            double impactAngleDeg = optDouble(json, 0.0, "impactAngle");
-            double peakHeight = optDouble(json, 0.0, "peakHeight");
             double speedMoe = optDouble(json, 0.0, "speedMOE", "speedMoe");
-            double angleMoe = optDouble(json, 0.0, "angleMOE", "angleMoe");
+            double angleMoeDeg = optDouble(json, 0.0, "angleMOE", "angleMoe");
 
             return new Trajectory(
                     dragCoeff,
@@ -28,11 +26,10 @@ public class TrajectoryLoader {
                     magnusPower,
                     speed,
                     Math.toRadians(exitAngleDeg),
-                    Math.toRadians(impactAngleDeg),
-                    peakHeight,
                     timeOfFlight,
                     speedMoe,
-                    angleMoe
+                    Math.toRadians(angleMoeDeg),
+                    true
             );
         } catch (JSONException e) {
             e.printStackTrace();
@@ -157,7 +154,7 @@ public class TrajectoryLoader {
         double bestMoe = -1.0;
         for (int i = 0; i < trajectories.size(); i++) {
             Trajectory trajectory = trajectories.get(i);
-            double combinedMoe = trajectory.exitSpeedMOE * trajectory.exitAngleMOE;
+            double combinedMoe = trajectory.exitSpeedMOE * trajectory.exitAngleMOERad;
             if (combinedMoe > bestMoe) {
                 bestMoe = combinedMoe;
                 bestIndex = i;
