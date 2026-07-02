@@ -1,10 +1,11 @@
 package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Angle2d;
+
 import java.util.Comparator;
 import java.util.List;
 
-public class ExitSpeedTrajectories {
-    public final List<Trajectory> lowArcTrajectories, highArcTrajectories;
+public record ExitSpeedTrajectories(List<Trajectory> lowArcTrajectories, List<Trajectory> highArcTrajectories) {
     // both lowArcTrajectories and highArcTrajectories should include trajectory with lowest speed
     public ExitSpeedTrajectories(List<Trajectory> lowArcTrajectories, List<Trajectory> highArcTrajectories) {
         this.lowArcTrajectories = lowArcTrajectories;
@@ -17,28 +18,31 @@ public class ExitSpeedTrajectories {
     public int getTotalTrajectories() {
         return lowArcTrajectories.size() + highArcTrajectories.size() - 1; // minus one to account for duplicate lowest speed trajectory
     }
+
     public Trajectory getLowestSpeedTrajectory() {
         return highArcTrajectories.get(0);
     }
-    public Trajectory getHighestSpeedTrajectory(double targetExitAngleRad) {
-        List<Trajectory> trajectories = getRelevantTrajectories(targetExitAngleRad);
+
+    public Trajectory getHighestSpeedTrajectory(Angle2d targetExitAngle) {
+        List<Trajectory> trajectories = getRelevantTrajectories(targetExitAngle);
         return trajectories.get(trajectories.size() - 1);
     }
 
     // assumes totalTrajectories() returns more than one
-    public TrajectoryType getTrajectoryType(double exitAngleRad, int numTrajectories) {
+    public TrajectoryType getTrajectoryType(Angle2d exitAngle, int numTrajectories) {
         if (numTrajectories == 0)
             throw new IllegalArgumentException("numTrajectories in getTrajectoryType should never be 0");
         if (numTrajectories == 1)
             return TrajectoryType.LOWEST_SPEED;
-        if (exitAngleRad > getLowestSpeedTrajectory().exitAngleRad)
+        if (exitAngle.radians() > getLowestSpeedTrajectory().exitAngle.radians())
             return TrajectoryType.HIGH_ARC;
-        if (exitAngleRad == getLowestSpeedTrajectory().exitAngleRad)
+        if (exitAngle.epsilonEquals(getLowestSpeedTrajectory().exitAngle, 0.001))
             return TrajectoryType.LOWEST_SPEED;
         return TrajectoryType.LOW_ARC;
     }
-    public List<Trajectory> getRelevantTrajectories(double exitAngleRad) {
-        if (exitAngleRad > getLowestSpeedTrajectory().exitAngleRad)
+
+    public List<Trajectory> getRelevantTrajectories(Angle2d exitAngle) {
+        if (exitAngle.radians() > getLowestSpeedTrajectory().exitAngle.radians())
             return highArcTrajectories;
         return lowArcTrajectories;
     }

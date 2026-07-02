@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Angle2d;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 
@@ -30,41 +32,41 @@ public class TrajectoryDistanceLUT {
         return loTraj.lerp(hiTraj, t);
     }
 
-    public TrajectoryWrapper getInterpolatedExitSpeedTrajectory(double distFromGoal, double exitSpeed, double targetExitAngleRad) {
+    public TrajectoryWrapper getInterpolatedExitSpeedTrajectory(double distFromGoal, double exitSpeed, Angle2d targetExitAngle) {
         if (distFromGoal <= getMinDistance())
-            return trajectoryLUTs.get(0).getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad).invalidate();
+            return trajectoryLUTs.get(0).getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle).invalidate();
         if (distFromGoal >= getMaxDistance())
-            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad).invalidate();
+            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle).invalidate();
 
         NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
 
         double distRange = neighbors.hiDist - neighbors.loDist;
         if (distRange <= 1e-9)
-            return neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad);
+            return neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle);
 
         double t = (distFromGoal - neighbors.loDist) / distRange;
-        TrajectoryWrapper loTraj = neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad);
-        TrajectoryWrapper hiTraj = neighbors.hiLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngleRad);
+        TrajectoryWrapper loTraj = neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle);
+        TrajectoryWrapper hiTraj = neighbors.hiLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle);
 
         return loTraj.lerp(hiTraj, t);
     }
 
-    public TrajectoryWrapper getInterpolatedExitAngleTrajectory(double distFromGoal, double exitAngleRad) {
+    public TrajectoryWrapper getInterpolatedExitAngleTrajectory(double distFromGoal, Angle2d exitAngle) {
         if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
-            return trajectoryLUTs.get(0).getInterpolatedExitAngleTrajectory(exitAngleRad).invalidate();
+            return trajectoryLUTs.get(0).getInterpolatedExitAngleTrajectory(exitAngle).invalidate();
         if (distFromGoal >= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal)
-            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitAngleTrajectory(exitAngleRad).invalidate();
+            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitAngleTrajectory(exitAngle).invalidate();
 
         NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
 
         double distRange = neighbors.hiDist - neighbors.loDist;
         if (distRange <= 1e-9)
-            return neighbors.loLUT.getInterpolatedExitAngleTrajectory(exitAngleRad);
+            return neighbors.loLUT.getInterpolatedExitAngleTrajectory(exitAngle);
 
         double t = (distFromGoal - neighbors.loDist) / distRange;
 
-        TrajectoryWrapper loTraj = neighbors.loLUT.getInterpolatedExitAngleTrajectory(exitAngleRad);
-        TrajectoryWrapper hiTraj = neighbors.hiLUT.getInterpolatedExitAngleTrajectory(exitAngleRad);
+        TrajectoryWrapper loTraj = neighbors.loLUT.getInterpolatedExitAngleTrajectory(exitAngle);
+        TrajectoryWrapper hiTraj = neighbors.hiLUT.getInterpolatedExitAngleTrajectory(exitAngle);
 
         return loTraj.lerp(hiTraj, t);
     }
@@ -130,16 +132,18 @@ public class TrajectoryDistanceLUT {
             throw new IllegalArgumentException("trajectoryLUTs cannot be empty");
         if (trajectoryLUTs.size() < 2)
             throw new IllegalArgumentException("trajectoryLUTs must contain at least 2 elements");
+
+        trajectoryLUTs.sort(Comparator.comparingDouble(t -> t.distFromGoal));
+
         for (int i = 0; i < trajectoryLUTs.size() - 1; i++) {
             TrajectoryLUT loLUT = trajectoryLUTs.get(i);
             TrajectoryLUT hiLUT = trajectoryLUTs.get(i + 1);
-            if (loLUT.distFromGoal >= hiLUT.distFromGoal)
-                throw new IllegalArgumentException("trajectoryLUTs must be sorted by distFromGoal");
+            if (loLUT.distFromGoal == hiLUT.distFromGoal)
+                throw new IllegalArgumentException("trajectoryLUTs must have unique distFromGoal values");
         }
 
         TrajectoryDistanceLUT lut = new TrajectoryDistanceLUT();
         lut.trajectoryLUTs.addAll(trajectoryLUTs);
-        lut.trajectoryLUTs.sort(Comparator.comparingDouble(t -> t.distFromGoal));
         return lut;
     }
 
@@ -154,11 +158,11 @@ public class TrajectoryDistanceLUT {
 
         return distFromGoal >= getMinDistance() && distFromGoal <= getMaxDistance();
     }
-    public boolean exitSpeedInRange(double distFromGoal, double exitSpeedMps, double targetExitAngleRad) {
-        return exitSpeedMps >= getMinExitSpeedMps(distFromGoal) && exitSpeedMps <= getMaxExitSpeedMps(distFromGoal, targetExitAngleRad);
+    public boolean exitSpeedInRange(double distFromGoal, double exitSpeedMps, Angle2d targetExitAngle) {
+        return exitSpeedMps >= getMinExitSpeedMps(distFromGoal) && exitSpeedMps <= getMaxExitSpeedMps(distFromGoal, targetExitAngle);
     }
-    public boolean exitAngleInRange(double distFromGoal, double exitAngleRad) {
-        return exitAngleRad >= getMinExitAngleRad(distFromGoal) && exitAngleRad <= getMaxExitAngleRad(distFromGoal);
+    public boolean exitAngleInRange(double distFromGoal, Angle2d exitAngle) {
+        return exitAngle.radians() >= getMinExitAngle(distFromGoal).radians() && exitAngle.radians() <= getMaxExitAngle(distFromGoal).radians();
     }
 
     public double getMinDistance() {
@@ -176,33 +180,33 @@ public class TrajectoryDistanceLUT {
         return lerp(ctx.loLUT.getMinExitSpeedMps(), ctx.hiLUT.getMinExitSpeedMps(), ctx.blendT);
     }
 
-    public double getMaxExitSpeedMps(double distFromGoal, double targetExitAngleRad) {
+    public double getMaxExitSpeedMps(double distFromGoal, Angle2d targetExitAngle) {
         DistanceContext ctx = resolveDistanceContext(distFromGoal);
         if (ctx == null)
             return 0;
         if (ctx.isSingle())
-            return ctx.loLUT.getMaxExitSpeedMps(targetExitAngleRad);
+            return ctx.loLUT.getMaxExitSpeedMps(targetExitAngle);
         return lerp(
-                ctx.loLUT.getMaxExitSpeedMps(targetExitAngleRad),
-                ctx.hiLUT.getMaxExitSpeedMps(targetExitAngleRad),
+                ctx.loLUT.getMaxExitSpeedMps(targetExitAngle),
+                ctx.hiLUT.getMaxExitSpeedMps(targetExitAngle),
                 ctx.blendT);
     }
 
-    public double getMinExitAngleRad(double distFromGoal) {
+    public Angle2d getMinExitAngle(double distFromGoal) {
         DistanceContext ctx = resolveDistanceContext(distFromGoal);
         if (ctx == null)
-            return 0;
+            return Angle2d.fromDegrees(0);
         if (ctx.isSingle())
-            return ctx.loLUT.getMinExitAngleRad();
-        return lerp(ctx.loLUT.getMinExitAngleRad(), ctx.hiLUT.getMinExitAngleRad(), ctx.blendT);
+            return ctx.loLUT.getMinExitAngle();
+        return ctx.loLUT.getMinExitAngle().lerp(ctx.hiLUT.getMinExitAngle(), ctx.blendT);
     }
 
-    public double getMaxExitAngleRad(double distFromGoal) {
+    public Angle2d getMaxExitAngle(double distFromGoal) {
         DistanceContext ctx = resolveDistanceContext(distFromGoal);
         if (ctx == null)
-            return 0;
+            return Angle2d.fromDegrees(0);
         if (ctx.isSingle())
-            return ctx.loLUT.getMaxExitAngleRad();
-        return lerp(ctx.loLUT.getMaxExitAngleRad(), ctx.hiLUT.getMaxExitAngleRad(), ctx.blendT);
+            return ctx.loLUT.getMaxExitAngle();
+        return ctx.loLUT.getMaxExitAngle().lerp(ctx.hiLUT.getMaxExitAngle(), ctx.blendT);
     }
 }

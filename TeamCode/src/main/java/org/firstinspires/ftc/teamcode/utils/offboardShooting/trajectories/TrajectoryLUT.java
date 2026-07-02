@@ -150,10 +150,10 @@ public class TrajectoryLUT {
     public String getSpeedSortedTrajectoriesString() {
         StringBuilder str = new StringBuilder();
         str.append("LowArc: ");
-        for (Trajectory traj : exitSpeedTrajectories.lowArcTrajectories)
+        for (Trajectory traj : exitSpeedTrajectories.lowArcTrajectories())
             str.append(traj.toStringShort()).append(" | ");
         str.append("HighArc: ");
-        for (Trajectory traj : exitSpeedTrajectories.highArcTrajectories)
+        for (Trajectory traj : exitSpeedTrajectories.highArcTrajectories())
             str.append(traj.toStringShort()).append(" | ");
         return str.toString().substring(0, str.length() - 3);
     }
