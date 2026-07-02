@@ -13,10 +13,12 @@ import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.Trajectory;
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryDistanceLUT;
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryLoader;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryMath;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Angle2d;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.TrajectoryMath;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.LaunchVector;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.ShootingMathNew;
-import org.firstinspires.ftc.teamcode.utils.shootingMath.Vector3d;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Vec2d;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Vec3d;
 
 import java.util.ArrayList;
 
@@ -42,13 +44,13 @@ public class ShootingSystemV2 extends ShootingSystem {
     }
 
     @Override
-    protected LaunchData calculateLaunchTrajectory(Vector2d robotPosIn, Vector2d turretPosIn, Vector3d goalPosIn, Vector2d robotVelocityIps, double impactAngleRad, double shooterVelTps) {
-        Vector2d turretPosM = turretPosIn.times(0.0254);
-        Vector2d goalPosM = new Vector2d(goalPosIn.x, goalPosIn.y).times(0.0254);
+    protected LaunchData calculateLaunchTrajectory(Vector2d robotPosIn, Vector2d turretPosIn, Vec3d goalPosIn, Vector2d robotVelocityIps, double impactAngleRad, double shooterVelTps) {
+        Vec2d turretPosM = new Vec2d(turretPosIn.x, turretPosIn.y).times(0.0254);
+        Vec2d goalPosM = new Vec2d(goalPosIn.x(), goalPosIn.y()).times(0.0254);
         OdoInfo robotVelocityMps = new OdoInfo(robotVelocityIps.x * 0.0254, robotVelocityIps.y * 0.0254, 0);
 
         mostRecentTurretPos = turretPosIn;
-        double distFromGoalM = turretPosIn.minus(new Vector2d(goalPosIn.x, goalPosIn.y)).times(0.0254).norm();
+        double distFromGoalM = turretPosIn.minus(new Vector2d(goalPosIn.x(), goalPosIn.y())).times(0.0254).norm();
 
         telemetry.addLine("OFFBOARD SHOOTING INFO======================");
         telemetry.addData("distFromGoalMeters", distFromGoalM);
@@ -56,7 +58,16 @@ public class ShootingSystemV2 extends ShootingSystem {
         telemetry.addData("distanceInRange", distanceInRange);
         if(distanceInRange) {
             double curExitSpeedMps = getMpsFromTps(shooterVelTps);
-            TrajectoryMath.TargetingInfo targetingInfo = TrajectoryMath.calculateTargetingInfo(trajectoryDistanceLUT, turretPosM, turretPosM, goalPosM, robotVelocityMps, curExitSpeedMps, v2Params.numIterations);
+            TrajectoryMath.TargetingInfo targetingInfo = TrajectoryMath.calculateTargetingInfo(
+                    trajectoryDistanceLUT,
+                    turretPosM,
+                    turretPosM,
+                    goalPosM,
+                    new Vec2d(robotVelocityMps.x, robotVelocityMps.y),
+                    robotVelocityMps.headingRad,
+                    curExitSpeedMps,
+                    v2Params.numIterations
+            );
 
             if(targetingInfo == null || targetingInfo.idealTargetTrajectory() == null)
                 return null;
@@ -65,11 +76,11 @@ public class ShootingSystemV2 extends ShootingSystem {
             telemetry.addData("targetShooterSpeedTps", targetShooterSpeedTps);
             boolean foundActualTrajectory = targetingInfo.actualTargetTrajectory() != null;
             boolean useActualTrajectory = v2Params.useVelocityCompensation && foundActualTrajectory;
-            double idealExitAngleRad = targetingInfo.idealTargetTrajectory().exitAngleRad;
-            double actualExitAngleRad = foundActualTrajectory ? targetingInfo.actualTargetTrajectory().exitAngleRad : idealExitAngleRad;
+            double idealExitAngleRad = targetingInfo.idealTargetTrajectory().exitAngle.radians();
+            double actualExitAngleRad = foundActualTrajectory ? targetingInfo.actualTargetTrajectory().exitAngle.radians() : idealExitAngleRad;
             mostRecentTrajectory = useActualTrajectory ? targetingInfo.actualTargetTrajectory() : targetingInfo.idealTargetTrajectory();
 
-            double targetTurretFieldAngleRad = useActualTrajectory ? targetingInfo.actualTurretFieldAngleRad() : targetingInfo.idealTurretFieldAngleRad();
+            double targetTurretFieldAngleRad = (useActualTrajectory ? targetingInfo.actualTurretFieldAngle() : targetingInfo.idealTurretFieldAngle()).radians();
 
             mostRecentLaunchData = new LaunchData(targetShooterSpeedTps, idealExitAngleRad, actualExitAngleRad, targetTurretFieldAngleRad);
             return mostRecentLaunchData;
@@ -88,14 +99,14 @@ public class ShootingSystemV2 extends ShootingSystem {
         super.drawShootingInfo(fieldOverlay);
 
         if(mostRecentTrajectory != null) {
-            ArrayList<Vector3d> points = mostRecentTrajectory.simulateTrajectory(
+            ArrayList<Vec3d> points = mostRecentTrajectory.simulateTrajectory(
                     v2Params.drawTrajNumPoints,
                     v2Params.drawTrajSparsity,
-                    mostRecentLaunchData.targetTurretFieldAngleRad(),
-                    new Vector3d(mostRecentTurretPos.x, mostRecentTurretPos.y, 0),
+                    Angle2d.fromRadians(mostRecentLaunchData.targetTurretFieldAngleRad()),
+                    new Vec3d(mostRecentTurretPos.x, mostRecentTurretPos.y, 0),
                     ShootingMathNew.construct3DVector(new LaunchVector(mostRecentLaunchData.targetShooterSpeedTps(), mostRecentLaunchData.idealExitAngleRad(), mostRecentLaunchData.targetTurretFieldAngleRad())));
             fieldOverlay.setStroke("blue");
-            fieldOverlay.strokeLine(points.get(0).x, points.get(0).y, points.get(points.size()-1).x, points.get(points.size()-1).y);
+            fieldOverlay.strokeLine(points.get(0).x(), points.get(0).y(), points.get(points.size()-1).x(), points.get(points.size()-1).y());
         }
     }
 

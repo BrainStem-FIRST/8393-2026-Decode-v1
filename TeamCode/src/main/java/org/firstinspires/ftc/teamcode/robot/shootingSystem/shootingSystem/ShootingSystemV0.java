@@ -7,7 +7,7 @@
 //
 //import org.firstinspires.ftc.robotcore.external.Telemetry;
 //import org.firstinspires.ftc.teamcode.opmode.Alliance;
-//import org.firstinspires.ftc.teamcode.utils.shootingMath.Vector3d;
+//import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Vector3d;
 //
 //public class ShootingSystemV0 extends ShootingSystem {
 //    private final InterpLUT shooterLut;

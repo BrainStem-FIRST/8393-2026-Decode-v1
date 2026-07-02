@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Angle2d;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -14,9 +15,9 @@ public class TrajectoryLUTTest {
     @Before
     public void setUp() {
         ArrayList<Trajectory> trajectories = new ArrayList<>();
-        trajectories.add(trajectory(5.0, 20.0, 30.0));
-        trajectories.add(trajectory(7.5, 35.0, 45.0));
-        trajectories.add(trajectory(10.0, 50.0, 60.0));
+        trajectories.add(trajectory(5.0, 20.0));
+        trajectories.add(trajectory(7.5, 35.0));
+        trajectories.add(trajectory(10.0, 50.0));
 
         trajectoryLUT = new TrajectoryLUT(
                 1.0,
@@ -30,33 +31,24 @@ public class TrajectoryLUTTest {
 
     @Test
     public void getInterpolatedExitAngleTrajectory_minAngle_returnsNonNull() {
-        double minAngle = trajectoryLUT.getMinExitAngleRad();
+        Angle2d minAngle = trajectoryLUT.getMinExitAngle();
         assertNotNull(trajectoryLUT.getInterpolatedExitAngleTrajectory(minAngle));
     }
 
     @Test
     public void getInterpolatedExitAngleTrajectory_maxAngle_returnsNonNull() {
-        double maxAngle = trajectoryLUT.getMaxExitAngleRad();
+        Angle2d maxAngle = trajectoryLUT.getMaxExitAngle();
         assertNotNull(trajectoryLUT.getInterpolatedExitAngleTrajectory(maxAngle));
     }
 
-    @Test
-    public void exitAngleInRange_min_returnsTrue() {
-        assertTrue(trajectoryLUT.exitAngleInRange(trajectoryLUT.getMinExitAngleRad()));
-    }
 
-    @Test
-    public void exitAngleInRange_max_returnsTrue() {
-        assertTrue(trajectoryLUT.exitAngleInRange(trajectoryLUT.getMaxExitAngleRad()));
-    }
-
-    private static Trajectory trajectory(double exitSpeedMps, double exitAngleDeg, double impactAngleDeg) {
+    private static Trajectory trajectory(double exitSpeedMps, double exitAngleDeg) {
         return new Trajectory(
                 0.1,
                 0.0,
                 2.0,
                 exitSpeedMps,
-                Math.toRadians(exitAngleDeg),
+                Angle2d.fromDegrees(exitAngleDeg),
                 0.5,
                 0.0,
                 0.0,

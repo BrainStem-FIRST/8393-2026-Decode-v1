@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Angle2d;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,7 +25,7 @@ public class TrajectoryLoader {
                     magnusCoeff,
                     magnusPower,
                     speed,
-                    Angle2d.fromDegrees(exitAngleDeg),
+                    Math.toRadians(exitAngleDeg),
                     timeOfFlight,
                     speedMoe,
                     Math.toRadians(angleMoeDeg),

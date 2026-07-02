@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.utils.shootingMath.ShootingMathOld;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.AnswerKeyPt1;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.AnswerKeyPt2;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.ShootingMathNew;
-import org.firstinspires.ftc.teamcode.utils.shootingMath.Vector3d;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Vec3d;
 
 
 @Config
@@ -91,20 +91,20 @@ public class ShootingSystemV1 extends ShootingSystem {
 
     }
     @Override
-    protected LaunchData calculateLaunchTrajectory(Vector2d robotPosIn, Vector2d turretPosIn, Vector3d goalPosIn, Vector2d robotVelocityIps, double impactAngleRad, double shooterVelTps) {
-        Vector3d exitPosM = new Vector3d(turretPosIn.x * .0254, turretPosIn.y * .0254, ShootingMathOld.approximateExitHeightM(false));
-            Vector3d robotPosM = new Vector3d(robotPosIn.x, robotPosIn.y, 0).times(.0254);
-            Vector3d goalPosM = new Vector3d(goalPosIn.x, goalPosIn.y, goalPosIn.z).times(.0254);
-            double goalDist = turretPosIn.minus(new Vector2d(goalPosIn.x, goalPosIn.y)).norm();
+    protected LaunchData calculateLaunchTrajectory(Vector2d robotPosIn, Vector2d turretPosIn, Vec3d goalPosIn, Vector2d robotVelocityIps, double impactAngleRad, double shooterVelTps) {
+        Vec3d exitPosM = new Vec3d(turretPosIn.x * .0254, turretPosIn.y * .0254, ShootingMathOld.approximateExitHeightM(false));
+            Vec3d robotPosM = new Vec3d(robotPosIn.x, robotPosIn.y, 0).times(.0254);
+            Vec3d goalPosM = new Vec3d(goalPosIn.x(), goalPosIn.y(), goalPosIn.z()).times(.0254);
+            double goalDist = turretPosIn.minus(new Vector2d(goalPosIn.x(), goalPosIn.y())).norm();
             double dragCompensation = getDragCompensation(goalDist);
             ShooterConversion shooterConversion = (encoderSpeed, exitAngle) -> ShooterV2.params.getMpsFunction.apply(encoderSpeed - dragCompensation);
-            Vector3d robotVelocityMps = new Vector3d(robotVelocityIps.x, robotVelocityIps.y, 0).times(.0254);
+            Vec3d robotVelocityMps = new Vec3d(robotVelocityIps.x, robotVelocityIps.y, 0).times(.0254);
 
             answerKeyPt1 = shootingMathNew.godSolvePart1(exitPosM, robotPosM, robotVelocityMps, 0, goalPosM, impactAngleRad, 0);
             answerKeyPt2 = shootingMathNew.godSolvePart2(answerKeyPt1, goalPosM, impactAngleRad, shooterVelTps, shooterConversion);
 
         if(true) {
-            Vector2d relGoal = new Vector2d(goalPosIn.x, goalPosIn.y).minus(turretPosIn);
+            Vector2d relGoal = new Vector2d(goalPosIn.x(), goalPosIn.y()).minus(turretPosIn);
             double e = Math.toRadians(hoodLookup.get(distFromGoal));
             double a = Math.atan2(relGoal.y, relGoal.x);
             if(answerKeyPt1.solutionExists)

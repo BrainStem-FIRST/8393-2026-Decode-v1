@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.utils.shootingMath;
 
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Vec3d;
+
 import java.util.ArrayList;
 import java.util.function.ToDoubleFunction;
 
@@ -25,25 +27,25 @@ public class ShootingMathNew {
    * @param lookAheadTime
    * @return ideal launch data and lookahead exit pos
    */
-  public AnswerKeyPt1 godSolvePart1(Vector3d exitPos, Vector3d centerOfRotation, Vector3d robotVelCm, double robotAngularVel, Vector3d goalPos, double targetImpactAngleRad, double lookAheadTime) {
+  public AnswerKeyPt1 godSolvePart1(Vec3d exitPos, Vec3d centerOfRotation, Vec3d robotVelCm, double robotAngularVel, Vec3d goalPos, double targetImpactAngleRad, double lookAheadTime) {
     // step 1: account for lookahead
-    Vector3d currentRadius = exitPos.sub(centerOfRotation).to2D();
-    Vector3d futureRelativeExitPos = rotateInXY(currentRadius, robotAngularVel * lookAheadTime);
-    Vector3d lookAheadExitPos = centerOfRotation.add(robotVelCm.times(lookAheadTime)).add(futureRelativeExitPos).add(new Vector3d(0, 0, exitPos.z - centerOfRotation.z));
+    Vec3d currentRadius = exitPos.sub(centerOfRotation).to2D();
+    Vec3d futureRelativeExitPos = rotateInXY(currentRadius, robotAngularVel * lookAheadTime);
+    Vec3d lookAheadExitPos = centerOfRotation.add(robotVelCm.times(lookAheadTime)).add(futureRelativeExitPos).add(new Vec3d(0, 0, exitPos.z() - centerOfRotation.z()));
 
-    Vector3d lookAheadTangentialVel = futureRelativeExitPos.perpInXY().times(robotAngularVel);
-    Vector3d lookAheadVelAtExitPos = robotVelCm.add(lookAheadTangentialVel);
+    Vec3d lookAheadTangentialVel = futureRelativeExitPos.perpInXY().times(robotAngularVel);
+    Vec3d lookAheadVelAtExitPos = robotVelCm.add(lookAheadTangentialVel);
 
-    Vector3d currentTangentialVel = currentRadius.perpInXY().times(robotAngularVel);
-    Vector3d currentVelAtExitPos = robotVelCm.add(currentTangentialVel);
+    Vec3d currentTangentialVel = currentRadius.perpInXY().times(robotAngularVel);
+    Vec3d currentVelAtExitPos = robotVelCm.add(currentTangentialVel);
 
     // step 2: calculate ideal values
     LaunchVector idealBallLaunchVector = calculateBallLaunchData(lookAheadExitPos, goalPos, targetImpactAngleRad);
     if(!idealBallLaunchVector.valid)
       return new AnswerKeyPt1(lookAheadExitPos, lookAheadVelAtExitPos, currentVelAtExitPos);
 
-    Vector3d idealBallLaunchVel = construct3DVector(idealBallLaunchVector);
-    Vector3d idealShooterLaunchVel = idealBallLaunchVel.sub(lookAheadVelAtExitPos);
+    Vec3d idealBallLaunchVel = construct3DVector(idealBallLaunchVector);
+    Vec3d idealShooterLaunchVel = idealBallLaunchVel.sub(lookAheadVelAtExitPos);
     LaunchVector idealShooterLaunchVector = decompose3DVector(idealShooterLaunchVel);
 
     return new AnswerKeyPt1(idealShooterLaunchVector, lookAheadExitPos, lookAheadVelAtExitPos, currentVelAtExitPos);
@@ -58,7 +60,7 @@ public class ShootingMathNew {
    * @param shooterConversion
    * @return AnswerKey datatype containing info about solution (see AnswerKey class)
    */
-  public AnswerKeyPt2 godSolvePart2(AnswerKeyPt1 answerKeyPt1, Vector3d goalPos, double targetImpactAngleRad, double shooterEncoderSpeed, ShooterConversion shooterConversion) {
+  public AnswerKeyPt2 godSolvePart2(AnswerKeyPt1 answerKeyPt1, Vec3d goalPos, double targetImpactAngleRad, double shooterEncoderSpeed, ShooterConversion shooterConversion) {
     if(!answerKeyPt1.solutionExists)
       return new AnswerKeyPt2();
 
@@ -94,15 +96,15 @@ public class ShootingMathNew {
    * @param targetImpactAngleRad
    * @return launch data
    */
-  public LaunchVector solve(Vector3d exitPosMeters, Vector3d robotVelAtExitPosMps, Vector3d goalPosMeters, double shooterSpeedMps, double targetImpactAngleRad) {
-    Vector3d v = robotVelAtExitPosMps;
+  public LaunchVector solve(Vec3d exitPosMeters, Vec3d robotVelAtExitPosMps, Vec3d goalPosMeters, double shooterSpeedMps, double targetImpactAngleRad) {
+    Vec3d v = robotVelAtExitPosMps;
     double S = shooterSpeedMps;
-    Vector3d r = goalPosMeters.sub(exitPosMeters);
+    Vec3d r = goalPosMeters.sub(exitPosMeters);
 
     double a = .25 * g * g;
-    double b = -g * v.z;
-    double c = v.magSqrd() + r.z * g - S * S;
-    double d = -2 * (r.x * v.x + r.y * v.y);
+    double b = -g * v.z();
+    double c = v.magSqrd() + r.z() * g - S * S;
+    double d = -2 * (r.x() * v.x() + r.y() * v.y());
     double e = r.magSqrd();
 
     ToDoubleFunction<Double> timeOfFlight = t -> {
@@ -120,23 +122,23 @@ public class ShootingMathNew {
     }
 
     ArrayList<Double> impactAngles = new ArrayList<>();
-    ArrayList<Vector3d> launchVectors = new ArrayList<>();
+    ArrayList<Vec3d> launchVectors = new ArrayList<>();
     
     for(double t : timeOfFlights) {
-      double ballVelX = r.x/t;
-      double ballVelY = r.y/t;
-      double ballVelZ = r.z/t + .5*g*t;
+      double ballVelX = r.x() / t;
+      double ballVelY = r.y() / t;
+      double ballVelZ = r.z() / t + .5 * g * t;
 
       double ballImpactVelZ = ballVelZ - g * t;
       double ballImpactVelXY = Math.hypot(ballVelX, ballVelY);
       double impactAngle = Math.atan2(ballImpactVelZ, ballImpactVelXY);
       impactAngles.add(impactAngle);
       
-      double launchVelX = ballVelX - v.x;
-      double launchVelY = ballVelY - v.y;
-      double launchVelZ = ballVelZ - v.z;
+      double launchVelX = ballVelX - v.x();
+      double launchVelY = ballVelY - v.y();
+      double launchVelZ = ballVelZ - v.z();
 
-      launchVectors.add(new Vector3d(launchVelX, launchVelY, launchVelZ));
+      launchVectors.add(new Vec3d(launchVelX, launchVelY, launchVelZ));
     }
 
     double minImpactAngleError = Double.MAX_VALUE;
@@ -150,9 +152,9 @@ public class ShootingMathNew {
     }
     if (desiredI == -1)
       return new LaunchVector();
-    Vector3d launchVector = launchVectors.get(desiredI);
-    double exitAngle = Math.atan2(launchVector.z, Math.hypot(launchVector.x, launchVector.y));
-    double turretAngle = Math.atan2(launchVector.y, launchVector.x);
+    Vec3d launchVector = launchVectors.get(desiredI);
+    double exitAngle = Math.atan2(launchVector.z(), Math.hypot(launchVector.x(), launchVector.y()));
+    double turretAngle = Math.atan2(launchVector.y(), launchVector.x());
 
     return new LaunchVector(shooterSpeedMps, exitAngle, turretAngle);
   }
@@ -204,18 +206,18 @@ public class ShootingMathNew {
     return zeroes;
   }
 
-  public static Vector3d construct3DVector(LaunchVector launchVector) {
-    Vector3d topDownDir = new Vector3d(Math.cos(launchVector.turretAng), Math.sin(launchVector.turretAng), 0);
+  public static Vec3d construct3DVector(LaunchVector launchVector) {
+    Vec3d topDownDir = new Vec3d(Math.cos(launchVector.turretAng), Math.sin(launchVector.turretAng), 0);
     double shootingAngleX = Math.cos(launchVector.exitAng);
     double shootingAngleY = Math.sin(launchVector.exitAng);
-    Vector3d dir = topDownDir.times(shootingAngleX).add(new Vector3d(0, 0, shootingAngleY));
+    Vec3d dir = topDownDir.times(shootingAngleX).add(new Vec3d(0, 0, shootingAngleY));
     return dir.times(launchVector.speed);
   }
-  public LaunchVector decompose3DVector(Vector3d vec) {
-    double base = Math.hypot(vec.x, vec.y);
-    double v = Math.hypot(base, vec.z);
-    double exitAng = Math.atan2(vec.z, base);
-    double turretAng = Math.atan2(vec.y, vec.x);
+  public LaunchVector decompose3DVector(Vec3d vec) {
+    double base = Math.hypot(vec.x(), vec.y());
+    double v = Math.hypot(base, vec.z());
+    double exitAng = Math.atan2(vec.z(), base);
+    double turretAng = Math.atan2(vec.y(), vec.x());
     return new LaunchVector(v, exitAng, turretAng);
   }
 
@@ -225,9 +227,9 @@ public class ShootingMathNew {
    * @param phi
    * @return launch data including shooter speed, exit angle, and turret angle
    */
-  public LaunchVector calculateBallLaunchData(Vector3d exitPos, Vector3d goalPos, double phi) {
-    double h = goalPos.z - exitPos.z;
-    double d = Math.hypot(exitPos.x - goalPos.x, exitPos.y - goalPos.y);
+  public LaunchVector calculateBallLaunchData(Vec3d exitPos, Vec3d goalPos, double phi) {
+    double h = goalPos.z() - exitPos.z();
+    double d = Math.hypot(exitPos.x() - goalPos.x(), exitPos.y() - goalPos.y());
 
     if(d == 0)
       return new LaunchVector();
@@ -242,15 +244,15 @@ public class ShootingMathNew {
 
     double v = Math.sqrt(num / denom);
 
-    double turretAng = Math.atan2(goalPos.y - exitPos.y, goalPos.x - exitPos.x);
+    double turretAng = Math.atan2(goalPos.y() - exitPos.y(), goalPos.x() - exitPos.x());
 
     return new LaunchVector(v, exitAng, turretAng);
   }
 
-  public Vector3d rotateInXY(Vector3d v, double a) {
+  public Vec3d rotateInXY(Vec3d v, double a) {
     double cos = Math.cos(a);
     double sin = Math.sin(a);
-    return new Vector3d(v.x * cos - v.y * sin, v.x * sin + v.y * cos, 0);
+    return new Vec3d(v.x() * cos - v.y() * sin, v.x() * sin + v.y() * cos, 0);
   }
 
   // helper functions to tune and test shooter encoder speed to exit speed conversion

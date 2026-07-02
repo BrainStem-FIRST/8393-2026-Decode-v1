@@ -22,7 +22,7 @@ import org.firstinspires.ftc.teamcode.utils.autoHelpers.CustomEndAction;
 import org.firstinspires.ftc.teamcode.utils.autoHelpers.TimedAction;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.pidDrive.MathUtils;
-import org.firstinspires.ftc.teamcode.utils.shootingMath.Vector3d;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Vec3d;
 
 import org.firstinspires.ftc.teamcode.robot.shootingSystem.shooter.*;
 import org.firstinspires.ftc.teamcode.robot.shootingSystem.hood.*;
@@ -78,7 +78,7 @@ public abstract class ShootingSystem extends Component {
         GATE_CYCLE, OPPOSITE_SIDE, REALLY_CLOSE, FAR
     }
     private Location locationState;
-    private Vector3d goalPosIn;
+    private Vec3d goalPosIn;
     private double impactAngleRad;
 
     private double turretAngleAdjustment, shooterSpeedAdjustment;
@@ -145,23 +145,23 @@ public abstract class ShootingSystem extends Component {
 
     private void updateGoalPoses(Vector2d robotPos, Alliance alliance) {
         Vector2d corner;
-        Vector3d closeGoalPos;
-        Vector3d farGoalPos;
-        Vector3d gateGoalPos;
-        Vector3d oppositeGoalPos;
+        Vec3d closeGoalPos;
+        Vec3d farGoalPos;
+        Vec3d gateGoalPos;
+        Vec3d oppositeGoalPos;
         if(alliance == Alliance.BLUE) {
             corner = new Vector2d(-72, -72);
-            closeGoalPos = new Vector3d(goalParams.closeBlueX, goalParams.closeBlueY, goalParams.closeHeight);
-            gateGoalPos = new Vector3d(goalParams.gateBlueX, goalParams.gateBlueY, goalParams.gateHeight);
-            oppositeGoalPos = new Vector3d(goalParams.oppositeBlueX, goalParams.oppositeBlueY, goalParams.oppositeHeight);
-            farGoalPos = new Vector3d(goalParams.farBlueX, goalParams.farBlueY, goalParams.farHeight);
+            closeGoalPos = new Vec3d(goalParams.closeBlueX, goalParams.closeBlueY, goalParams.closeHeight);
+            gateGoalPos = new Vec3d(goalParams.gateBlueX, goalParams.gateBlueY, goalParams.gateHeight);
+            oppositeGoalPos = new Vec3d(goalParams.oppositeBlueX, goalParams.oppositeBlueY, goalParams.oppositeHeight);
+            farGoalPos = new Vec3d(goalParams.farBlueX, goalParams.farBlueY, goalParams.farHeight);
         }
         else {
             corner = new Vector2d(-72, 72);
-            closeGoalPos = new Vector3d(goalParams.closeRedX, goalParams.closeRedY, goalParams.closeHeight);
-            gateGoalPos = new Vector3d(goalParams.gateRedX, goalParams.gateRedY, goalParams.gateHeight);
-            oppositeGoalPos = new Vector3d(goalParams.oppositeRedX, goalParams.oppositeRedY, goalParams.oppositeHeight);
-            farGoalPos = new Vector3d(goalParams.farRedX, goalParams.farRedY, goalParams.farHeight);
+            closeGoalPos = new Vec3d(goalParams.closeRedX, goalParams.closeRedY, goalParams.closeHeight);
+            gateGoalPos = new Vec3d(goalParams.gateRedX, goalParams.gateRedY, goalParams.gateHeight);
+            oppositeGoalPos = new Vec3d(goalParams.oppositeRedX, goalParams.oppositeRedY, goalParams.oppositeHeight);
+            farGoalPos = new Vec3d(goalParams.farRedX, goalParams.farRedY, goalParams.farHeight);
         }
 
         double sign = alliance == Alliance.RED ? 1 : -1;
@@ -234,7 +234,7 @@ public abstract class ShootingSystem extends Component {
 
         turret.updateProperties(dt);
         turretPoseIn = ShootingMathOld.calcTurretPose(robotPoseIn, turret.getCurAngleRad());
-        distFromGoal = turretPoseIn.position.minus(new Vector2d(goalPosIn.x, goalPosIn.y)).norm();
+        distFromGoal = turretPoseIn.position.minus(new Vector2d(goalPosIn.x(), goalPosIn.y())).norm();
 
         shooter.updateProperties();
 
@@ -251,7 +251,7 @@ public abstract class ShootingSystem extends Component {
         LaunchData launchData = calculateLaunchTrajectory(clippedRobotPoseIn.position, clippedTurretPoseIn.position, goalPosIn, robotVel, impactAngleRad, filteredShooterSpeed);
         if(launchData != null) {
             currentTargetShooterSpeedTps = launchData.targetShooterSpeedTps;
-            lookAheadTargetShooterSpeedTps = currentTargetShooterSpeedTps + Math.max(0, robotVel.dot(turretPoseIn.position.minus(new Vector2d(goalPosIn.x, goalPosIn.y))) * generalParams.shooterLookAhead);
+            lookAheadTargetShooterSpeedTps = currentTargetShooterSpeedTps + Math.max(0, robotVel.dot(turretPoseIn.position.minus(new Vector2d(goalPosIn.x(), goalPosIn.y()))) * generalParams.shooterLookAhead);
 
             if(filteredHoodExitAngleRad == 0)
                 filteredHoodExitAngleRad = launchData.idealExitAngleRad;
@@ -315,7 +315,7 @@ public abstract class ShootingSystem extends Component {
             }
         }
     }
-    protected abstract LaunchData calculateLaunchTrajectory(Vector2d robotPosIn, Vector2d turretPosIn, Vector3d goalPosIn, Vector2d robotVelocityIps, double impactAngleRad, double shooterVelTps);
+    protected abstract LaunchData calculateLaunchTrajectory(Vector2d robotPosIn, Vector2d turretPosIn, Vec3d goalPosIn, Vector2d robotVelocityIps, double impactAngleRad, double shooterVelTps);
 
     // pro: yes velocity-based hood adjustment
     // con: math is weird
@@ -554,7 +554,7 @@ public abstract class ShootingSystem extends Component {
     public void drawShootingInfo(Canvas fieldOverlay) {
         // draw goal and shooting rings
         fieldOverlay.setStroke("yellow");
-        fieldOverlay.strokeCircle(goalPosIn.x, goalPosIn.y, 3);
+        fieldOverlay.strokeCircle(goalPosIn.x(), goalPosIn.y(), 3);
 
         fieldOverlay.setStroke("red");
         Drawing.drawCirclePose(fieldOverlay, turretPoseIn, 5);

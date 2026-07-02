@@ -2,8 +2,7 @@ package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
 import androidx.annotation.NonNull;
 
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Angle2d;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Vec3d;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Vector3d;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -15,7 +14,7 @@ public class Trajectory {
     public final double magnusCoeff;
     public final double magnusPower;
     public final double exitSpeedMps;
-    public final Angle2d exitAngle;
+    public final double exitAngleRad;
     public final double timeOfFlight;
     public final double exitSpeedMOE;
     public final double exitAngleMOERad;
@@ -26,7 +25,7 @@ public class Trajectory {
             double magnusCoeff,
             double magnusPower,
             double launchSpeedMps,
-            Angle2d exitAngle,
+            double exitAngleRad,
             double timeOfFlight,
             double exitSpeedMOE,
             double exitAngleMOERad,
@@ -35,7 +34,7 @@ public class Trajectory {
         this.magnusCoeff = magnusCoeff;
         this.magnusPower = magnusPower;
         this.exitSpeedMps = launchSpeedMps;
-        this.exitAngle = exitAngle;
+        this.exitAngleRad = exitAngleRad;
         this.timeOfFlight = timeOfFlight;
         this.exitSpeedMOE = exitSpeedMOE;
         this.exitAngleMOERad = exitAngleMOERad;
@@ -44,7 +43,7 @@ public class Trajectory {
 
     public Trajectory lerp(Trajectory other, double t) {
         double interpLaunchSpeed = lerp(exitSpeedMps, other.exitSpeedMps, t);
-        Angle2d interpExitAngle = exitAngle.lerp(other.exitAngle, t);
+        double interpExitAngle = lerp(exitAngleRad, other.exitAngleRad, t);
         double interpTOF = lerp(timeOfFlight, other.timeOfFlight, t);
         double interpSpeedMoe = lerp(exitSpeedMOE, other.exitSpeedMOE, t);
         double interpAngleMoe = lerp(exitAngleMOERad, other.exitAngleMOERad, t);
@@ -69,7 +68,7 @@ public class Trajectory {
                 magnusCoeff,
                 magnusPower,
                 exitSpeedMps,
-                exitAngle,
+                exitAngleRad,
                 timeOfFlight,
                 exitSpeedMOE,
                 exitAngleMOERad,
@@ -85,21 +84,21 @@ public class Trajectory {
     @Override
     public String toString() {
         DecimalFormat df = new DecimalFormat("0.000");
-        return "ExitSpeed" + df.format(exitSpeedMps) + "m/s | ExitAngle: " + df.format(exitAngle.degrees()) + "deg | SpeedMOE: " + df.format(exitSpeedMOE) + "mps | AngleMOE: " + df.format(Math.toDegrees(exitAngleMOERad)) + "deg | ToF: " + df.format(timeOfFlight) + "s";
+        return "ExitSpeed" + df.format(exitSpeedMps) + "m/s | ExitAngle: " + df.format(Math.toDegrees(exitAngleRad)) + "deg | SpeedMOE: " + df.format(exitSpeedMOE) + "mps | AngleMOE: " + df.format(Math.toDegrees(exitAngleMOERad)) + "deg | ToF: " + df.format(timeOfFlight) + "s";
     }
     public String toStringShort() {
         DecimalFormat df = new DecimalFormat("0.000");
-        return df.format(exitSpeedMps) + "m/s " + df.format(exitAngle.degrees()) + "deg";
+        return df.format(exitSpeedMps) + "m/s " + df.format(Math.toDegrees(exitAngleRad)) + "deg";
     }
 
-    public ArrayList<Vec3d> simulateTrajectory(
+    public ArrayList<Vector3d> simulateTrajectory(
             int numPoints,
             int sparsityForTelemetry,
-            Angle2d turretAngle,
-            Vec3d startPosition,
-            Vec3d startVelocity) {
+            double turretAngleRad,
+            Vector3d startPosition,
+            Vector3d startVelocity) {
 
-        ArrayList<Vec3d> points = new ArrayList<>();
+        ArrayList<Vector3d> points = new ArrayList<>();
         if (numPoints <= 2)
             throw new IllegalArgumentException("numPoints must be at least 3");
 
@@ -112,11 +111,11 @@ public class Trajectory {
         double y = startPosition.y();
         double z = startPosition.z();
 
-        double launchHorizontalSpeed = exitSpeedMps * exitAngle.cos();
-        double launchVerticalSpeed = exitSpeedMps * exitAngle.sin();
+        double launchHorizontalSpeed = exitSpeedMps * Math.cos(exitAngleRad);
+        double launchVerticalSpeed = exitSpeedMps * Math.sin(exitAngleRad);
 
-        double launchVx = launchHorizontalSpeed * turretAngle.cos();
-        double launchVy = launchHorizontalSpeed * turretAngle.sin();
+        double launchVx = launchHorizontalSpeed * Math.cos(turretAngleRad);
+        double launchVy = launchHorizontalSpeed * Math.sin(turretAngleRad);
         double launchVz = launchVerticalSpeed;
 
         double vx = launchVx + startVelocity.x();
@@ -126,18 +125,18 @@ public class Trajectory {
         /*
          * Horizontal spin axis.
          *
-         * For turretAngle = 0:
+         * For turretAngleRad = 0:
          * forward = +x
          * spinAxis = +y
          *
          * cross(velocity, spinAxis) = +z, so positive magnusCoef gives upward lift.
          * Negative magnusCoef flips the direction, representing topspin.
          */
-        double spinAxisX = -turretAngle.sin();
-        double spinAxisY = turretAngle.cos();
+        double spinAxisX = -Math.sin(turretAngleRad);
+        double spinAxisY = Math.cos(turretAngleRad);
         double spinAxisZ = 0.0;
 
-        points.add(new Vec3d(x, y, z));
+        points.add(new Vector3d(x, y, z));
 
         for (int i = 1; i < numPoints; i++) {
             double speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
@@ -212,10 +211,10 @@ public class Trajectory {
             y += vy * dt;
             z += vz * dt;
 
-            points.add(new Vec3d(x, y, z));
+            points.add(new Vector3d(x, y, z));
         }
 
-        ArrayList<Vec3d> pointsToPublish = IntStream.range(0, points.size())
+        ArrayList<Vector3d> pointsToPublish = IntStream.range(0, points.size())
                 .filter(i -> i % sparsityForTelemetry == 0)
                 .mapToObj(points::get)
                 .collect(Collectors.toCollection(ArrayList::new));

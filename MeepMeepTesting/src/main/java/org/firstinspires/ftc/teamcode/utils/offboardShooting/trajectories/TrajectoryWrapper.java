@@ -1,16 +1,14 @@
 package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
 
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Angle2d;
-
 public class TrajectoryWrapper extends Trajectory {
     public final TrajectoryType trajectoryType;
     public TrajectoryWrapper(Trajectory trajectory, TrajectoryType trajectoryType) {
-        super(trajectory.dragCoeff, trajectory.magnusCoeff, trajectory.magnusPower, trajectory.exitSpeedMps, trajectory.exitAngle, trajectory.timeOfFlight, trajectory.exitSpeedMOE, trajectory.exitAngleMOERad, trajectory.onTarget);
+        super(trajectory.dragCoeff, trajectory.magnusCoeff, trajectory.magnusPower, trajectory.exitSpeedMps, trajectory.exitAngleRad, trajectory.timeOfFlight, trajectory.exitSpeedMOE, trajectory.exitAngleMOERad, trajectory.onTarget);
         this.trajectoryType = trajectoryType;
     }
     public TrajectoryWrapper lerp(TrajectoryWrapper other, double t) {
         double interpLaunchSpeed = lerp(exitSpeedMps, other.exitSpeedMps, t);
-        Angle2d interpExitAngle = exitAngle.lerp(other.exitAngle, t);
+        double interpExitAngle = lerp(exitAngleRad, other.exitAngleRad, t);
         double interpTOF = lerp(timeOfFlight, other.timeOfFlight, t);
         double interpSpeedMoe = lerp(exitSpeedMOE, other.exitSpeedMOE, t);
         double interpAngleMoe = lerp(exitAngleMOERad, other.exitAngleMOERad, t);

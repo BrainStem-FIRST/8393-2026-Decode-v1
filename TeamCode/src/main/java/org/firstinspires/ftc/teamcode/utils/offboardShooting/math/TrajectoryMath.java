@@ -1,7 +1,7 @@
-package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories;
+package org.firstinspires.ftc.teamcode.utils.offboardShooting.math;
 
-import com.acmerobotics.roadrunner.Vector2d;
-import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.Trajectory;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryDistanceLUT;
 
 /**
  * Utility methods for applying robot-motion compensation to offboard-generated
@@ -16,9 +16,9 @@ public class TrajectoryMath {
     public record TargetingInfo(
         Trajectory idealTargetTrajectory,
         Trajectory actualTargetTrajectory,
-        Vector2d displacedGoal,
-        double idealTurretFieldAngleRad,
-        Double actualTurretFieldAngleRad
+        Vec2d displacedGoal,
+        Angle2d idealTurretFieldAngle,
+        Angle2d actualTurretFieldAngle
     ) {}
 
     /**
@@ -27,21 +27,21 @@ public class TrajectoryMath {
      */
     private static TrajectoryGoalInfo computeDisplacedGoal(
         TrajectoryDistanceLUT trajectoryLUT,
-        Vector2d goalPos,
-        Vector2d turretPos,
-        Vector2d turretVel,
+        Vec2d goalPos,
+        Vec2d turretPos,
+        Vec2d turretVel,
         double startDistFromGoalM,
         double speed,
         int tofEstimationIterations,
         boolean useOptimalTrajectory // true = optimal trajectory lookup, false = exit-speed lookup
     ) {
-        Vector2d displacedGoal = goalPos;
-        Vector2d turretToGoal;
+        Vec2d displacedGoal = goalPos;
+        Vec2d turretToGoal;
         double distFromGoal = startDistFromGoalM;
         Trajectory optimalTrajectory = trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal);
         Trajectory trajectory = useOptimalTrajectory
             ? optimalTrajectory
-            : trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, speed, optimalTrajectory.exitAngleRad);
+            : trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, speed, optimalTrajectory.exitAngle);
 
         if (trajectory == null) return new TrajectoryGoalInfo(null, null, 0.0);
 
@@ -53,7 +53,7 @@ public class TrajectoryMath {
             optimalTrajectory = trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal);
             trajectory = useOptimalTrajectory
                 ? optimalTrajectory
-                : trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, speed, optimalTrajectory.exitAngleRad);
+                : trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, speed, optimalTrajectory.exitAngle);
 
             if (trajectory == null) return new TrajectoryGoalInfo(null, null, 0.0);
         }
@@ -62,9 +62,9 @@ public class TrajectoryMath {
 
     private static class TrajectoryGoalInfo {
         final Trajectory trajectory;
-        final Vector2d displacedGoal;
+        final Vec2d displacedGoal;
         final double distFromGoal;
-        TrajectoryGoalInfo(Trajectory t, Vector2d g, double d) {
+        TrajectoryGoalInfo(Trajectory t, Vec2d g, double d) {
             this.trajectory = t;
             this.displacedGoal = g;
             this.distFromGoal = d;
@@ -74,22 +74,22 @@ public class TrajectoryMath {
     // TAKES EVERYTHING IN METERS
     public static TargetingInfo calculateTargetingInfo(
         TrajectoryDistanceLUT trajectoryLUT,
-        Vector2d centerOfRotation,
-        Vector2d turretPos,
-        Vector2d goalPos,
-        OdoInfo robotVel,
+        Vec2d centerOfRotation,
+        Vec2d turretPos,
+        Vec2d goalPos,
+        Vec2d robotLinearVel,
+        double robotAngularVelRad,
         double currentExitSpeed,
         int tofEstimationIterations
     ) {
-        Vector2d robotVelocity = new Vector2d(robotVel.x, robotVel.y);
 
-        Vector2d robotToTurret = turretPos.minus(centerOfRotation);
-        Vector2d robotToTurretPerp = new Vector2d(-robotToTurret.y, robotToTurret.x*1);
+        Vec2d robotToTurret = turretPos.minus(centerOfRotation);
+        Vec2d robotToTurretPerp = new Vec2d(-robotToTurret.y(), robotToTurret.x()*1);
 
-        Vector2d turretVel = robotToTurretPerp.times(robotVel.headingRad).plus(robotVelocity);
+        Vec2d turretVel = robotToTurretPerp.times(robotAngularVelRad).plus(robotLinearVel);
 
-        Vector2d turretToGoal = goalPos.minus(turretPos);
-        double startDistFromGoal = Math.hypot(turretToGoal.x, turretToGoal.y);
+        Vec2d turretToGoal = goalPos.minus(turretPos);
+        double startDistFromGoal = Math.hypot(turretToGoal.x(), turretToGoal.y());
 
         // Calculate ideal trajectory (by impact angle)
         TrajectoryGoalInfo idealInfo = computeDisplacedGoal(
@@ -104,10 +104,10 @@ public class TrajectoryMath {
 
         if (idealInfo.trajectory == null) return null;
 
-        double idealTurretFieldAngleRad = Math.atan2(
-            idealInfo.displacedGoal.minus(turretPos).y, 
-            idealInfo.displacedGoal.minus(turretPos).x
-        );
+        Angle2d idealTurretFieldAngle = Angle2d.fromRadians(Math.atan2(
+            idealInfo.displacedGoal.minus(turretPos).y(),
+            idealInfo.displacedGoal.minus(turretPos).x()
+        ));
 
         // Calculate actual trajectory (by exit speed)
         TrajectoryGoalInfo actualInfo = computeDisplacedGoal(
@@ -121,28 +121,28 @@ public class TrajectoryMath {
             false
         );
 
-        Double actualTurretFieldAngleRad;
+        Angle2d actualTurretFieldAngle;
         if (actualInfo.trajectory == null)
-            actualTurretFieldAngleRad = null;
+            actualTurretFieldAngle = null;
         else
-            actualTurretFieldAngleRad = Math.atan2(
-                actualInfo.displacedGoal.minus(turretPos).y,
-                actualInfo.displacedGoal.minus(turretPos).x
-            );
+            actualTurretFieldAngle = Angle2d.fromRadians(Math.atan2(
+                actualInfo.displacedGoal.minus(turretPos).y(),
+                actualInfo.displacedGoal.minus(turretPos).x()
+            ));
 
         return new TargetingInfo(
             idealInfo.trajectory,
             actualInfo.trajectory,
             actualInfo.displacedGoal, // return displacedGoal from actual/exitSpeed
-            idealTurretFieldAngleRad,
-            actualTurretFieldAngleRad
+            idealTurretFieldAngle,
+            actualTurretFieldAngle
         );
     }
 
     public static double[] calculateFilteredExitAngle(Trajectory target, Trajectory compensated) {
         double diff = Math.abs(compensated.exitSpeedMps - target.exitSpeedMps);
-        double t = Math.min(1, diff / target.exitSpeedMOE);
-        double exitAngle = target.lerp(compensated, t).exitAngleRad;
+        double t = target.exitSpeedMOE <= 1e-9 ? 1.0 : Math.min(1, diff / target.exitSpeedMOE);
+        double exitAngle = target.lerp(compensated, t).exitAngle.radians();
         return new double[] { exitAngle, t };
     }
 }

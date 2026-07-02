@@ -15,12 +15,12 @@ import org.firstinspires.ftc.teamcode.robot.shootingSystem.shooter.ShooterV2;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Collector;
 import org.firstinspires.ftc.teamcode.utils.math.OdoInfo;
 import org.firstinspires.ftc.teamcode.utils.misc.BatteryVoltageFilter;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.Trajectory;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Angle2d;
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryDistanceLUT;
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryLoader;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryMath;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.TrajectoryMath;
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryWrapper;
-import org.firstinspires.ftc.teamcode.utils.shootingMath.Vector3d;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.Vec3d;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ public class TrajectoryDistanceLUTTest extends OpMode {
         OPTIMAL
     }
     public static boolean setShooterHoodToTrajectory = false;
-    public static boolean useDynamicHood = true;
+    public static boolean useDynamicHood = false;
     public static boolean runIntake = false;
     public static boolean engageClutch = false;
     public static ControlType controlType = ControlType.EXIT_SPEED;
@@ -70,22 +70,12 @@ public class TrajectoryDistanceLUTTest extends OpMode {
 
         telemetry.addLine("Ready");
         telemetry.addLine();
-        TrajectoryDistanceLUT.NeighborTrajectoryInfo info = trajectoryDistanceLUT.getNeighboringTrajectoryLUTs(metersFromGoal);
-        telemetry.addData("loLUT", info.loLUT());
-        telemetry.addData("hiLUT", info.hiLUT());
-        telemetry.addData("loLUT speed sorted", info.loLUT().getSpeedSortedTrajectoriesString());
-        telemetry.addData("hiLUT speed sorted", info.hiLUT().getSpeedSortedTrajectoriesString());
+        addNeighborLUTTelemetry();
         telemetry.update();
     }
 
     @Override
     public void loop() {
-        if (controlType == ControlType.EXIT_ANGLE) {
-            useDynamicHood = false;
-            telemetry.addLine("Dynamic Hood disabled in " + controlType.name() + " control type");
-            telemetry.addLine();
-        }
-
         updateDriver1Controls();
         updateCollectorState();
 
@@ -115,14 +105,16 @@ public class TrajectoryDistanceLUTTest extends OpMode {
         double curExitSpeedMps = ShooterV2.params.getMpsFunction.apply(shooter.getVelTps());
 
         TrajectoryWrapper targetTrajectory = chooseTrajectory(controlType);
-        TrajectoryWrapper compensatedTrajectory = trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(metersFromGoal, curExitSpeedMps, targetTrajectory.exitAngleRad);
+        TrajectoryWrapper compensatedTrajectory = trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(metersFromGoal, curExitSpeedMps, targetTrajectory.exitAngle);
+        TrajectoryWrapper commandedTrajectory = useDynamicHood ? compensatedTrajectory : targetTrajectory;
 
         telemetry.addData("Control Type", controlType.name());
         telemetry.addLine("Aiming " + metersFromGoal + " meters forward from exit position");
         telemetry.addLine("Aiming " + trajectoryDistanceLUT.getRelGoalHeight() + " meters up from exit position");
+        telemetry.addData("DistanceInRange", trajectoryDistanceLUT.distanceInRange(metersFromGoal));
         telemetry.addLine();
-        telemetry.addData("ShooterSpeedRange", df.format(trajectoryDistanceLUT.getMinExitSpeedMps(metersFromGoal)) + "-" + df.format(trajectoryDistanceLUT.getMaxExitSpeedMps(metersFromGoal, targetTrajectory.exitAngleRad)));
-        telemetry.addData("ExitAngleRange", df.format(Math.toDegrees(trajectoryDistanceLUT.getMinExitAngleRad(metersFromGoal))) + "-" + df.format(Math.toDegrees(trajectoryDistanceLUT.getMaxExitAngleRad(metersFromGoal))));
+        telemetry.addData("ShooterSpeedRange", df.format(trajectoryDistanceLUT.getMinExitSpeedMps(metersFromGoal)) + "-" + df.format(trajectoryDistanceLUT.getMaxExitSpeedMps(metersFromGoal, targetTrajectory.exitAngle)));
+        telemetry.addData("ExitAngleRange", df.format(trajectoryDistanceLUT.getMinExitAngle(metersFromGoal).degrees()) + "-" + df.format(trajectoryDistanceLUT.getMaxExitAngle(metersFromGoal).degrees()));
         telemetry.addLine();
         if (useDynamicHood) {
             telemetry.addData("Target Trajectory", targetTrajectory);
@@ -134,14 +126,14 @@ public class TrajectoryDistanceLUTTest extends OpMode {
             telemetry.addData("Chosen Trajectory", targetTrajectory);
         telemetry.addLine();
         if (controlType == ControlType.EXIT_SPEED) {
-            telemetry.addData("ShooterSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, exitSpeedMps, targetTrajectory.exitAngleRad));
+            telemetry.addData("ShooterSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, exitSpeedMps, targetTrajectory.exitAngle));
             if (useDynamicHood)
-                telemetry.addData("CompensatedSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, curExitSpeedMps, targetTrajectory.exitAngleRad));
+                telemetry.addData("CompensatedSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, curExitSpeedMps, targetTrajectory.exitAngle));
         }
         else if (controlType == ControlType.EXIT_ANGLE)
-            telemetry.addData("ExitAngleInRange", trajectoryDistanceLUT.exitAngleInRange(metersFromGoal, Math.toRadians(exitAngleDeg)));
+            telemetry.addData("ExitAngleInRange", trajectoryDistanceLUT.exitAngleInRange(metersFromGoal, Angle2d.fromDegrees(exitAngleDeg)));
         else if (controlType == ControlType.OPTIMAL && useDynamicHood)
-            telemetry.addData("CompensatedSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, curExitSpeedMps, targetTrajectory.exitAngleRad));
+            telemetry.addData("CompensatedSpeedInRange", trajectoryDistanceLUT.exitSpeedInRange(metersFromGoal, curExitSpeedMps, targetTrajectory.exitAngle));
 
         double targetShooterSpeedTps = ShooterV2.params.getTpsFunction.apply(targetTrajectory.exitSpeedMps);
         double shooterSpeedActualMps = ShooterV2.params.getMpsFunction.apply(shooter.getVelTps());
@@ -162,19 +154,19 @@ public class TrajectoryDistanceLUTTest extends OpMode {
                 telemetry.addData("exitAngleTValue", info[1]);
             }
             else
-                hood.setTargetExitAngle(targetTrajectory.exitAngleRad);
+                hood.setTargetExitAngle(targetTrajectory.exitAngle.radians());
 
-            ArrayList<Vector3d> points = targetTrajectory.simulateTrajectory(300, 10, 0, new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
-            Vector3d startingPositionMeters = points.get(0);
-            Vector3d startingPositionFeet = startingPositionMeters.times(3.281);
-            Vector3d landingPositionMeters = points.get(points.size() - 1);
-            Vector3d landingPositionFeet = landingPositionMeters.times(3.281);
+            ArrayList<Vec3d> points = commandedTrajectory.simulateTrajectory(300, 10, Angle2d.fromRadians(0), new Vec3d(0, 0, 0), new Vec3d(0, 0, 0));
+            Vec3d startingPositionMeters = points.get(0);
+            Vec3d startingPositionFeet = startingPositionMeters.times(3.281);
+            Vec3d landingPositionMeters = points.get(points.size() - 1);
+            Vec3d landingPositionFeet = landingPositionMeters.times(3.281);
 
             TelemetryPacket packet = new TelemetryPacket();
             packet.fieldOverlay().setFill("green");
-            packet.fieldOverlay().fillCircle(startingPositionFeet.x, startingPositionFeet.y, 1);
+            packet.fieldOverlay().fillCircle(startingPositionFeet.x(), startingPositionFeet.y(), 1);
             packet.fieldOverlay().setFill("red");
-            packet.fieldOverlay().fillCircle(landingPositionFeet.x, landingPositionFeet.y, 1);
+            packet.fieldOverlay().fillCircle(landingPositionFeet.x(), landingPositionFeet.y(), 1);
 
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
         }
@@ -189,12 +181,26 @@ public class TrajectoryDistanceLUTTest extends OpMode {
         trajectoryDistanceLUT = TrajectoryLoader.loadTrajectoryDistanceLUT("mtiTrajectories.json");
     }
 
+    private void addNeighborLUTTelemetry() {
+        if (!trajectoryDistanceLUT.distanceInRange(metersFromGoal)) {
+            telemetry.addData("metersFromGoal out of LUT range", metersFromGoal);
+            telemetry.addData("range", df.format(trajectoryDistanceLUT.getMinDistance()) + "-" + df.format(trajectoryDistanceLUT.getMaxDistance()));
+            return;
+        }
+
+        TrajectoryDistanceLUT.NeighborTrajectoryInfo info = trajectoryDistanceLUT.getNeighboringTrajectoryLUTs(metersFromGoal);
+        telemetry.addData("loLUT", info.loLUT());
+        telemetry.addData("hiLUT", info.hiLUT());
+        telemetry.addData("loLUT speed sorted", info.loLUT().getSpeedSortedTrajectoriesString());
+        telemetry.addData("hiLUT speed sorted", info.hiLUT().getSpeedSortedTrajectoriesString());
+    }
+
     private TrajectoryWrapper chooseTrajectory(ControlType controlType) {
         return switch (controlType) {
             case EXIT_SPEED ->
-                    trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(metersFromGoal, exitSpeedMps, Math.toRadians(exitAngleDeg));
+                    trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(metersFromGoal, exitSpeedMps, Angle2d.fromDegrees(exitAngleDeg));
             case EXIT_ANGLE ->
-                    trajectoryDistanceLUT.getInterpolatedExitAngleTrajectory(metersFromGoal, Math.toRadians(exitAngleDeg));
+                    trajectoryDistanceLUT.getInterpolatedExitAngleTrajectory(metersFromGoal, Angle2d.fromDegrees(exitAngleDeg));
             case OPTIMAL -> trajectoryDistanceLUT.getInterpolatedOptimalTrajectory(metersFromGoal);
         };
     }
