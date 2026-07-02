@@ -13,7 +13,7 @@ public class ShooterV2 extends Shooter {
     public static class Params {
         //linear: y=0.00783937x+0.468228
         // logarithmic: y=-28.38609 + 5.28369*ln(x)
-        public Function<Double, Double> getMpsFunction = tps -> -32.33448 + 5.93989 * Math.log(tps);
+        public Function<Double, Double> getMpsFunction = tps -> tps < 1e-3 ? 0 : -32.33448 + 5.93989 * Math.log(tps);
         public Function<Double, Double> getTpsFunction = mps -> Math.exp((mps + 32.33448) / 5.93989);
         public double firstShootTolerance = 80, farShootTolerance = 140, closeShootTolerance = 200;
         public double velocitySign = -1;

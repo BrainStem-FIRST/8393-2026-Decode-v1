@@ -84,12 +84,14 @@ public class Trajectory {
     @NonNull
     @Override
     public String toString() {
-        DecimalFormat df = new DecimalFormat("0.000");
-        return "ExitSpeed" + df.format(exitSpeedMps) + "m/s | ExitAngle: " + df.format(exitAngle.degrees()) + "deg | SpeedMOE: " + df.format(exitSpeedMOE) + "mps | AngleMOE: " + df.format(Math.toDegrees(exitAngleMOERad)) + "deg | ToF: " + df.format(timeOfFlight) + "s";
+        DecimalFormat df = new DecimalFormat("#.###");
+        DecimalFormat df2 = new DecimalFormat("#.######");
+        return "ExitSpeed" + df2.format(exitSpeedMps) + "m/s | ExitAngle: " + df.format(exitAngle.degrees()) + "deg | SpeedMOE: " + df.format(exitSpeedMOE) + "mps | AngleMOE: " + df.format(Math.toDegrees(exitAngleMOERad)) + "deg | ToF: " + df.format(timeOfFlight) + "s";
     }
     public String toStringShort() {
-        DecimalFormat df = new DecimalFormat("0.000");
-        return df.format(exitSpeedMps) + "m/s " + df.format(exitAngle.degrees()) + "deg";
+        DecimalFormat df = new DecimalFormat("#.###");
+        DecimalFormat df2 = new DecimalFormat("#.######");
+        return df2.format(exitSpeedMps) + "m/s " + df.format(exitAngle.degrees()) + "deg";
     }
 
     public ArrayList<Vec3d> simulateTrajectory(

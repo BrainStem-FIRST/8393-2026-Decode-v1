@@ -119,8 +119,11 @@ public class TrajectoryDistanceLUTTest extends OpMode {
         if (useDynamicHood) {
             telemetry.addData("Target Trajectory", targetTrajectory);
             telemetry.addLine("Target " + targetTrajectory.trajectoryType.name());
+            telemetry.addData("Target OnTarget", targetTrajectory.onTarget);
             telemetry.addData("Compensated Trajectory", compensatedTrajectory);
             telemetry.addLine("Compensated " + compensatedTrajectory.trajectoryType.name());
+            telemetry.addData("Compensated OnTarget", compensatedTrajectory.onTarget);
+
         }
         else
             telemetry.addData("Chosen Trajectory", targetTrajectory);

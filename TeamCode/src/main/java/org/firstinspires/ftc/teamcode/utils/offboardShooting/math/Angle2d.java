@@ -12,6 +12,8 @@ public record Angle2d(double radians) {
      * @param radians angle in radians
      */
     public Angle2d {
+        if (Double.isNaN(radians) || Double.isInfinite(radians))
+            throw new IllegalArgumentException("radians is not a valid number when creating new Angle2d");
         radians = normalizeRadians(radians);
     }
 

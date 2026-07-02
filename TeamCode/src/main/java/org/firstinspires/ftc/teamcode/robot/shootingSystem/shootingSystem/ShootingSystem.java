@@ -15,6 +15,7 @@ import org.firstinspires.ftc.teamcode.opmode.Alliance;
 import org.firstinspires.ftc.teamcode.roadrunner.Drawing;
 import org.firstinspires.ftc.teamcode.robot.RobotProperties;
 import org.firstinspires.ftc.teamcode.robot.shootingSystem.SRSHub;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.math.TrajectoryMath;
 import org.firstinspires.ftc.teamcode.utils.shootingMath.ShootingMathOld;
 import org.firstinspires.ftc.teamcode.robot.shootingSystem.Turret;
 import org.firstinspires.ftc.teamcode.robot.subsystems.Component;
@@ -252,7 +253,6 @@ public abstract class ShootingSystem extends Component {
         if(launchData != null) {
             currentTargetShooterSpeedTps = launchData.targetShooterSpeedTps;
             lookAheadTargetShooterSpeedTps = currentTargetShooterSpeedTps + Math.max(0, robotVel.dot(turretPoseIn.position.minus(new Vector2d(goalPosIn.x(), goalPosIn.y()))) * generalParams.shooterLookAhead);
-
             if(filteredHoodExitAngleRad == 0)
                 filteredHoodExitAngleRad = launchData.idealExitAngleRad;
             else {
@@ -263,7 +263,6 @@ public abstract class ShootingSystem extends Component {
                 // normalized vel error = min(1, vel error / threshold)
                 // filtered = lerp(ideal hood, actual hood, normalized vel error)
             }
-//                filteredHoodExitAngleRad = filteredHoodExitAngleRad * generalParams.hoodFilterA + launchData.idealExitAngleRad * (1 - generalParams.hoodFilterA);
 
             turretGoalTargetAngle = launchData.targetTurretFieldAngleRad;
         }

@@ -51,8 +51,8 @@ public class TrajectoryLUT {
         }
 
         // both of these include the lowest exit speed trajectory
-        List<Trajectory> lowArcTrajectories = rawExitAngleSortedTrajectories.subList(0, lowestExitSpeedIndex + 1);
-        List<Trajectory> highArcTrajectories = rawExitAngleSortedTrajectories.subList(lowestExitSpeedIndex, rawExitAngleSortedTrajectories.size());
+        List<Trajectory> lowArcTrajectories = new ArrayList<>(rawExitAngleSortedTrajectories).subList(0, lowestExitSpeedIndex + 1);
+        List<Trajectory> highArcTrajectories = new ArrayList<>(rawExitAngleSortedTrajectories).subList(lowestExitSpeedIndex, rawExitAngleSortedTrajectories.size());
 
         this.exitAngTrajectories = new ArrayList<>(rawExitAngleSortedTrajectories);
         this.exitSpeedTrajectories = new ExitSpeedTrajectories(lowArcTrajectories, highArcTrajectories);

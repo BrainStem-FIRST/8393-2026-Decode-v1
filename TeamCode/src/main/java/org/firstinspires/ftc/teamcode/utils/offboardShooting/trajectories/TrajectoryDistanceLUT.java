@@ -13,6 +13,8 @@ public class TrajectoryDistanceLUT {
     }
 
     public TrajectoryWrapper getInterpolatedOptimalTrajectory(double distFromGoal) {
+        if (Double.isNaN(distFromGoal))
+            throw new IllegalArgumentException("dist from goal is NaN when calling getInterpolatedExitSpeedTrajectory");
         if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
             return trajectoryLUTs.get(0).getOptimalTrajectory().invalidate();
         if (distFromGoal >= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal)
@@ -33,6 +35,10 @@ public class TrajectoryDistanceLUT {
     }
 
     public TrajectoryWrapper getInterpolatedExitSpeedTrajectory(double distFromGoal, double exitSpeed, Angle2d targetExitAngle) {
+        if (Double.isNaN(distFromGoal))
+            throw new IllegalArgumentException("dist from goal is NaN when calling getInterpolatedExitSpeedTrajectory");
+        if (Double.isNaN(exitSpeed))
+            throw new IllegalArgumentException("exitSpeed is NaN when calling getInterpolatedExitSpeedTrajectory");
         if (distFromGoal <= getMinDistance())
             return trajectoryLUTs.get(0).getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle).invalidate();
         if (distFromGoal >= getMaxDistance())
@@ -52,6 +58,8 @@ public class TrajectoryDistanceLUT {
     }
 
     public TrajectoryWrapper getInterpolatedExitAngleTrajectory(double distFromGoal, Angle2d exitAngle) {
+        if (Double.isNaN(distFromGoal))
+            throw new IllegalArgumentException("dist from goal is NaN when calling getInterpolatedExitSpeedTrajectory");
         if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
             return trajectoryLUTs.get(0).getInterpolatedExitAngleTrajectory(exitAngle).invalidate();
         if (distFromGoal >= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal)
