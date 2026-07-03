@@ -79,7 +79,7 @@ public record Angle2d(double radians) {
      * @param other rotation to add
      * @return normalized sum of both rotations
      */
-    public Angle2d add(Angle2d other) {
+    public Angle2d plus(Angle2d other) {
         return new Angle2d(this.radians + other.radians);
     }
 
@@ -89,7 +89,7 @@ public record Angle2d(double radians) {
      * @param other rotation to subtract
      * @return normalized difference between the rotations
      */
-    public Angle2d sub(Angle2d other) {
+    public Angle2d minus(Angle2d other) {
         return new Angle2d(this.radians - other.radians);
     }
 
@@ -138,7 +138,7 @@ public record Angle2d(double radians) {
      * @return signed angular distance in radians
      */
     public double angularDistanceTo(Angle2d other) {
-        return other.sub(this).radians;
+        return other.minus(this).radians;
     }
 
     /**
@@ -149,7 +149,7 @@ public record Angle2d(double radians) {
      * @return {@code true} if the rotations are within the tolerance
      */
     public boolean epsilonEquals(Angle2d other, double epsilonRadians) {
-        return Math.abs(this.sub(other).radians) <= epsilonRadians;
+        return Math.abs(this.minus(other).radians) <= epsilonRadians;
     }
 
     /**
@@ -178,7 +178,7 @@ public record Angle2d(double radians) {
      * @return interpolated rotation
      */
     public Angle2d lerp(Angle2d other, double t) {
-        return add(other.sub(this).times(t));
+        return plus(other.minus(this).times(t));
     }
 
     public static Angle2d kZero = fromDegrees(0);

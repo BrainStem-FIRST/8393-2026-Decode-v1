@@ -33,6 +33,7 @@ public class TrajectoryDistanceLUTTest extends OpMode {
     public enum ControlType {
         EXIT_SPEED,
         EXIT_ANGLE,
+        EXIT_ANGLE_SINE_WAVE,
         OPTIMAL
     }
     public static class HardwareControls {
@@ -58,11 +59,16 @@ public class TrajectoryDistanceLUTTest extends OpMode {
     public static class OptimalControls {
         public boolean highArc = true;
     }
+    public static class ExitAngleSineWaveControls {
+        public double exitAngleRangePercent = 0.9;
+        public double period = 5;
+    }
     public static HardwareControls hardwareControls = new HardwareControls();
     public static ShootingControls shootingControls = new ShootingControls();
     public static ExitAngleControls exitAngleControls = new ExitAngleControls();
     public static ExitSpeedControls exitSpeedControls = new ExitSpeedControls();
     public static OptimalControls optimalControls = new OptimalControls();
+    public static ExitAngleSineWaveControls sineWaveControls = new ExitAngleSineWaveControls();
     private TrajectoryDistanceLUT trajectoryDistanceLUT;
     private SRSHub srsHub;
     private ShooterV2 shooter;
@@ -218,24 +224,37 @@ public class TrajectoryDistanceLUTTest extends OpMode {
     }
 
     private Trajectory chooseTrajectory(ControlType controlType) {
-        return switch (controlType) {
-            case EXIT_SPEED ->
-                    trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(
-                            shootingControls.metersFromGoal,
-                            exitSpeedControls.exitSpeedMps,
-                            exitSpeedControls.highArc
-                    );
-            case EXIT_ANGLE ->
-                    trajectoryDistanceLUT.getInterpolatedExitAngleTrajectory(
-                            shootingControls.metersFromGoal,
-                            Angle2d.fromDegrees(exitAngleControls.exitAngleDeg)
-                    );
-            case OPTIMAL ->
-                    trajectoryDistanceLUT.getInterpolatedOptimalTrajectory(
-                            shootingControls.metersFromGoal,
-                            optimalControls.highArc
-                    );
+        switch (controlType) {
+            case EXIT_SPEED:
+                return trajectoryDistanceLUT.getInterpolatedExitSpeedTrajectory(
+                        shootingControls.metersFromGoal,
+                        exitSpeedControls.exitSpeedMps,
+                        exitSpeedControls.highArc
+                );
+            case EXIT_ANGLE:
+                return trajectoryDistanceLUT.getInterpolatedExitAngleTrajectory(
+                        shootingControls.metersFromGoal,
+                        Angle2d.fromDegrees(exitAngleControls.exitAngleDeg)
+                );
+            case OPTIMAL:
+                return trajectoryDistanceLUT.getInterpolatedOptimalTrajectory(
+                        shootingControls.metersFromGoal,
+                        optimalControls.highArc
+                );
+            case EXIT_ANGLE_SINE_WAVE:
+                Angle2d minExitAngle = trajectoryDistanceLUT.getMinExitAngle(shootingControls.metersFromGoal);
+                Angle2d maxExitAngle = trajectoryDistanceLUT.getMaxExitAngle(shootingControls.metersFromGoal);
+                Angle2d range = maxExitAngle.minus(minExitAngle);
+                Angle2d buffer = range.times((1 - sineWaveControls.exitAngleRangePercent) * 0.5);
+                minExitAngle = minExitAngle.plus(buffer);
+                maxExitAngle = maxExitAngle.minus(buffer);
+
+                double y = Math.sin(2 * Math.PI * getRuntime() / sineWaveControls.period);
+                double t = y * 0.5 + 0.5;
+                Angle2d sineAngle = minExitAngle.lerp(maxExitAngle, t);
+                return trajectoryDistanceLUT.getInterpolatedExitAngleTrajectory(shootingControls.metersFromGoal, sineAngle);
         };
+        throw new IllegalStateException("this should never run in chooseTrajectory with controlType " + controlType);
     }
 
     private void updateDriver1Controls() {
