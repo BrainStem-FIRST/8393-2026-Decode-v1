@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.utils.offboardShooting.math;
 
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.Trajectory;
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryDistanceLUT;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryWrapper;
+import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.Trajectory;
 
 /**
  * Utility methods for applying robot-motion compensation to offboard-generated
@@ -33,12 +33,13 @@ public class TrajectoryMath {
         Vec2d turretVel,
         double startDistFromGoalM,
         double curExitSpeedMps,
-        int tofEstimationIterations
+        int tofEstimationIterations,
+        boolean highArc
     ) {
         Vec2d displacedGoal = goalPos;
         Vec2d turretToGoal;
         double distFromGoal = startDistFromGoalM;
-        TrajectoryWrapper targetTrajectory = trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal);
+        Trajectory targetTrajectory = trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal, highArc);
 
         for (int i = 0; i < tofEstimationIterations; i++) {
             Vec2d displacement = turretVel.times(-1).times(targetTrajectory.timeOfFlight * 0.85);
@@ -46,9 +47,9 @@ public class TrajectoryMath {
             turretToGoal = displacedGoal.minus(turretPos);
             distFromGoal = turretToGoal.norm();
 
-            targetTrajectory = trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal);
+            targetTrajectory = trajectoryLUT.getInterpolatedOptimalTrajectory(distFromGoal, highArc);
         }
-        TrajectoryWrapper compensatedTrajectory = trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, curExitSpeedMps, targetTrajectory.exitAngle);
+        Trajectory compensatedTrajectory = trajectoryLUT.getInterpolatedExitSpeedTrajectory(distFromGoal, curExitSpeedMps, highArc);
         return new TrajectoryGoalInfo(targetTrajectory, compensatedTrajectory, displacedGoal, distFromGoal);
     }
 
@@ -67,7 +68,8 @@ public class TrajectoryMath {
         Vec2d robotLinearVel,
         double robotAngularVelRad,
         double currentExitSpeed,
-        int tofEstimationIterations
+        int tofEstimationIterations,
+        boolean highArc
     ) {
 
         Vec2d robotToTurret = turretPos.minus(centerOfRotation);
@@ -86,7 +88,9 @@ public class TrajectoryMath {
             turretVel,
             startDistFromGoal,
             currentExitSpeed,
-            tofEstimationIterations);
+            tofEstimationIterations,
+            highArc
+        );
 
         Angle2d turretFieldAngle = trajectoryGoalInfo.displacedGoal.minus(turretPos).angle();
 

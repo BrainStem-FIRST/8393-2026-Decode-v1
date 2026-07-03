@@ -13,9 +13,9 @@ public class WriteFileTest extends OpMode {
     @Override
     public void init() {
         File file = AppUtil.getInstance().getSettingsFile("mtiTrajectories.json");
-        ReadWriteFile.writeFile(file, MtiJsonStringGetter.getJson());
+        ReadWriteFile.writeFile(file, TrajectoryJsonString.getJson());
         telemetry.addLine("File Written");
-        telemetry.addData("contents", MtiJsonStringGetter.getJson().substring(0, 500));
+        telemetry.addData("contents", TrajectoryJsonString.getJson().substring(0, 500));
     }
 
     @Override

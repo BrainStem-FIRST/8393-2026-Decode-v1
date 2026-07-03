@@ -18,7 +18,7 @@ public class Trajectory {
     public final Angle2d exitAngle;
     public final double timeOfFlight;
     public final double exitSpeedMOE;
-    public final double exitAngleMOERad;
+    public final Angle2d exitAngleMOE;
     public final boolean onTarget;
 
     public Trajectory(
@@ -29,7 +29,7 @@ public class Trajectory {
             Angle2d exitAngle,
             double timeOfFlight,
             double exitSpeedMOE,
-            double exitAngleMOERad,
+            Angle2d exitAngleMOE,
             boolean onTarget) {
         this.dragCoeff = dragCoeff;
         this.magnusCoeff = magnusCoeff;
@@ -38,7 +38,7 @@ public class Trajectory {
         this.exitAngle = exitAngle;
         this.timeOfFlight = timeOfFlight;
         this.exitSpeedMOE = exitSpeedMOE;
-        this.exitAngleMOERad = exitAngleMOERad;
+        this.exitAngleMOE = exitAngleMOE;
         this.onTarget = onTarget;
     }
 
@@ -47,7 +47,7 @@ public class Trajectory {
         Angle2d interpExitAngle = exitAngle.lerp(other.exitAngle, t);
         double interpTOF = lerp(timeOfFlight, other.timeOfFlight, t);
         double interpSpeedMoe = lerp(exitSpeedMOE, other.exitSpeedMOE, t);
-        double interpAngleMoe = lerp(exitAngleMOERad, other.exitAngleMOERad, t);
+        Angle2d interpAngleMoe = exitAngleMOE.lerp(other.exitAngleMOE, t);
 
         return new Trajectory(
                 dragCoeff,
@@ -72,7 +72,7 @@ public class Trajectory {
                 exitAngle,
                 timeOfFlight,
                 exitSpeedMOE,
-                exitAngleMOERad,
+                exitAngleMOE,
                 false
         );
     }
@@ -86,7 +86,7 @@ public class Trajectory {
     public String toString() {
         DecimalFormat df = new DecimalFormat("#.###");
         DecimalFormat df2 = new DecimalFormat("#.######");
-        return "ExitSpeed" + df2.format(exitSpeedMps) + "m/s | ExitAngle: " + df.format(exitAngle.degrees()) + "deg | SpeedMOE: " + df.format(exitSpeedMOE) + "mps | AngleMOE: " + df.format(Math.toDegrees(exitAngleMOERad)) + "deg | ToF: " + df.format(timeOfFlight) + "s";
+        return "ExitSpeed" + df2.format(exitSpeedMps) + "m/s | ExitAngle: " + df.format(exitAngle.degrees()) + "deg | SpeedMOE: " + df.format(exitSpeedMOE) + "mps | AngleMOE: " + df.format(exitAngleMOE.degrees()) + "deg | ToF: " + df.format(timeOfFlight) + "s";
     }
     public String toStringShort() {
         DecimalFormat df = new DecimalFormat("#.###");

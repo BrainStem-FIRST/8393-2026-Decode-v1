@@ -12,52 +12,56 @@ public class TrajectoryDistanceLUT {
         this.trajectoryLUTs = new ArrayList<>();
     }
 
-    public TrajectoryWrapper getInterpolatedOptimalTrajectory(double distFromGoal) {
+    public Trajectory getInterpolatedOptimalTrajectory(double distFromGoal, boolean highArc) {
         if (Double.isNaN(distFromGoal))
             throw new IllegalArgumentException("dist from goal is NaN when calling getInterpolatedExitSpeedTrajectory");
         if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
-            return trajectoryLUTs.get(0).getOptimalTrajectory().invalidate();
+            return trajectoryLUTs.get(0).optimalHighArcTrajectory.invalidate();
         if (distFromGoal >= trajectoryLUTs.get(trajectoryLUTs.size() - 1).distFromGoal)
-            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getOptimalTrajectory().invalidate();
+            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).optimalHighArcTrajectory.invalidate();
 
         NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
 
         double distRange = neighbors.hiDist - neighbors.loDist;
         if (distRange <= 1e-9)
-            return neighbors.loLUT.getOptimalTrajectory();
+            return neighbors.loLUT.optimalHighArcTrajectory;
 
         double t = (distFromGoal - neighbors.loDist) / distRange;
 
-        TrajectoryWrapper loTraj = neighbors.loLUT.getOptimalTrajectory();
-        TrajectoryWrapper hiTraj = neighbors.hiLUT.getOptimalTrajectory();
+        Trajectory loTraj = highArc ? neighbors.loLUT.optimalHighArcTrajectory : neighbors.loLUT.optimalLowArcTrajectory;
+        Trajectory hiTraj = highArc ? neighbors.hiLUT.optimalHighArcTrajectory : neighbors.hiLUT.optimalLowArcTrajectory;
 
         return loTraj.lerp(hiTraj, t);
     }
 
-    public TrajectoryWrapper getInterpolatedExitSpeedTrajectory(double distFromGoal, double exitSpeed, Angle2d targetExitAngle) {
+    public Trajectory getInterpolatedExitSpeedTrajectory(double distFromGoal, double exitSpeed, Angle2d exitAngle) {
+        return getInterpolatedExitSpeedTrajectory(distFromGoal, exitSpeed, isHighArc(distFromGoal, exitAngle));
+    }
+    public Trajectory getInterpolatedExitSpeedTrajectory(double distFromGoal, double exitSpeed, boolean highArc) {
         if (Double.isNaN(distFromGoal))
             throw new IllegalArgumentException("dist from goal is NaN when calling getInterpolatedExitSpeedTrajectory");
         if (Double.isNaN(exitSpeed))
             throw new IllegalArgumentException("exitSpeed is NaN when calling getInterpolatedExitSpeedTrajectory");
+
         if (distFromGoal <= getMinDistance())
-            return trajectoryLUTs.get(0).getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle).invalidate();
+            return trajectoryLUTs.get(0).getInterpolatedExitSpeedTrajectory(exitSpeed, highArc).invalidate();
         if (distFromGoal >= getMaxDistance())
-            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle).invalidate();
+            return trajectoryLUTs.get(trajectoryLUTs.size() - 1).getInterpolatedExitSpeedTrajectory(exitSpeed, highArc).invalidate();
 
         NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
 
         double distRange = neighbors.hiDist - neighbors.loDist;
         if (distRange <= 1e-9)
-            return neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle);
+            return neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, highArc);
 
         double t = (distFromGoal - neighbors.loDist) / distRange;
-        TrajectoryWrapper loTraj = neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle);
-        TrajectoryWrapper hiTraj = neighbors.hiLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, targetExitAngle);
+        Trajectory loTraj = neighbors.loLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, highArc);
+        Trajectory hiTraj = neighbors.hiLUT.getInterpolatedExitSpeedTrajectory(exitSpeed, highArc);
 
         return loTraj.lerp(hiTraj, t);
     }
 
-    public TrajectoryWrapper getInterpolatedExitAngleTrajectory(double distFromGoal, Angle2d exitAngle) {
+    public Trajectory getInterpolatedExitAngleTrajectory(double distFromGoal, Angle2d exitAngle) {
         if (Double.isNaN(distFromGoal))
             throw new IllegalArgumentException("dist from goal is NaN when calling getInterpolatedExitSpeedTrajectory");
         if (distFromGoal <= trajectoryLUTs.get(0).distFromGoal)
@@ -73,8 +77,8 @@ public class TrajectoryDistanceLUT {
 
         double t = (distFromGoal - neighbors.loDist) / distRange;
 
-        TrajectoryWrapper loTraj = neighbors.loLUT.getInterpolatedExitAngleTrajectory(exitAngle);
-        TrajectoryWrapper hiTraj = neighbors.hiLUT.getInterpolatedExitAngleTrajectory(exitAngle);
+        Trajectory loTraj = neighbors.loLUT.getInterpolatedExitAngleTrajectory(exitAngle);
+        Trajectory hiTraj = neighbors.hiLUT.getInterpolatedExitAngleTrajectory(exitAngle);
 
         return loTraj.lerp(hiTraj, t);
     }
@@ -216,5 +220,14 @@ public class TrajectoryDistanceLUT {
         if (ctx.isSingle())
             return ctx.loLUT.getMaxExitAngle();
         return ctx.loLUT.getMaxExitAngle().lerp(ctx.hiLUT.getMaxExitAngle(), ctx.blendT);
+    }
+
+    public boolean isHighArc(double distFromGoal, Angle2d exitAngle) {
+        NeighborTrajectoryInfo neighbors = getNeighboringTrajectoryLUTs(distFromGoal);
+        // x - a / b - a
+        double t = (distFromGoal - neighbors.loDist) / (neighbors.hiDist - neighbors.loDist);
+        if (t < 0.5)
+            return neighbors.loLUT.isHighArc(exitAngle);
+        return neighbors.hiLUT.isHighArc(exitAngle);
     }
 }

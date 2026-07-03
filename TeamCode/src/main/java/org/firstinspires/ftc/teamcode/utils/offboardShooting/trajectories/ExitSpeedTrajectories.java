@@ -34,27 +34,12 @@ public record ExitSpeedTrajectories(List<Trajectory> lowArcTrajectories, List<Tr
         return highArcTrajectories.get(0);
     }
 
-    public Trajectory getHighestSpeedTrajectory(Angle2d targetExitAngle) {
-        List<Trajectory> trajectories = getRelevantTrajectories(targetExitAngle);
+    public Trajectory getHighestSpeedTrajectory(boolean highArc) {
+        List<Trajectory> trajectories = getRelevantTrajectories(highArc);
         return trajectories.get(trajectories.size() - 1);
     }
 
-    // assumes totalTrajectories() returns more than one
-    public TrajectoryType getTrajectoryType(Angle2d exitAngle, int numTrajectories) {
-        if (numTrajectories == 0)
-            throw new IllegalArgumentException("numTrajectories in getTrajectoryType should never be 0");
-        if (numTrajectories == 1)
-            return TrajectoryType.LOWEST_SPEED;
-        if (exitAngle.radians() > getLowestSpeedTrajectory().exitAngle.radians())
-            return TrajectoryType.HIGH_ARC;
-        if (exitAngle.epsilonEquals(getLowestSpeedTrajectory().exitAngle, 0.001))
-            return TrajectoryType.LOWEST_SPEED;
-        return TrajectoryType.LOW_ARC;
-    }
-
-    public List<Trajectory> getRelevantTrajectories(Angle2d exitAngle) {
-        if (exitAngle.radians() > getLowestSpeedTrajectory().exitAngle.radians())
-            return highArcTrajectories;
-        return lowArcTrajectories;
+    public List<Trajectory> getRelevantTrajectories(boolean highArc) {
+        return highArc ? highArcTrajectories : lowArcTrajectories;
     }
 }

@@ -17,14 +17,15 @@ public class TrajectoryLUT {
 
     private final ArrayList<Trajectory> exitAngTrajectories;
     private final ExitSpeedTrajectories exitSpeedTrajectories;
-    private final TrajectoryWrapper optimalTrajectory;
+    public final Trajectory optimalHighArcTrajectory, optimalLowArcTrajectory;
 
     public TrajectoryLUT(
             double distFromGoal,
             double relGoalHeight,
             double dragCoef,
             double magnusCoef,
-            int optimalTrajectoryIndex,
+            int optimalHighArcIndex,
+            int optimalLowArcIndex,
             ArrayList<Trajectory> rawTrajectories) {
         this.distFromGoal = distFromGoal;
         this.relGoalHeight = relGoalHeight;
@@ -33,8 +34,10 @@ public class TrajectoryLUT {
 
         if (rawTrajectories.isEmpty())
             throw new IllegalArgumentException("trajectories must not be empty");
-        if (optimalTrajectoryIndex < 0 || optimalTrajectoryIndex >= rawTrajectories.size())
-            throw new IllegalArgumentException("optimalTrajectoryIndex out of range");
+        if (optimalHighArcIndex < 0 || optimalHighArcIndex >= rawTrajectories.size())
+            throw new IllegalArgumentException("JSON file has invalid optimal high arc index at " + distFromGoal + "meters. " + optimalHighArcIndex + " must be >= 0 and < " + rawTrajectories.size());
+        if (optimalLowArcIndex < 0 || optimalLowArcIndex >= rawTrajectories.size())
+            throw new IllegalArgumentException("JSON file has invalid optimal low arc index at " + distFromGoal + "meters. " + optimalLowArcIndex + " must be >= 0 and < " + rawTrajectories.size());
 
         ArrayList<Trajectory> rawExitAngleSortedTrajectories = new ArrayList<>(rawTrajectories);
         rawExitAngleSortedTrajectories.sort(Comparator.comparingDouble(t -> t.exitAngle.radians()));
@@ -57,23 +60,21 @@ public class TrajectoryLUT {
         this.exitAngTrajectories = new ArrayList<>(rawExitAngleSortedTrajectories);
         this.exitSpeedTrajectories = new ExitSpeedTrajectories(lowArcTrajectories, highArcTrajectories);
 
-        Trajectory optimalTrajectory = rawTrajectories.get(optimalTrajectoryIndex); // optimal trajectory is not same as lowest speed trajectory
-        TrajectoryType optimalTrajectoryType = exitSpeedTrajectories.getTrajectoryType(optimalTrajectory.exitAngle, rawExitAngleSortedTrajectories.size());
-        this.optimalTrajectory = new TrajectoryWrapper(optimalTrajectory, optimalTrajectoryType);
+        optimalHighArcTrajectory = rawTrajectories.get(optimalHighArcIndex);
+
+        optimalLowArcTrajectory = rawTrajectories.get(optimalLowArcIndex);
     }
 
-    public TrajectoryWrapper getOptimalTrajectory() {
-        return optimalTrajectory;
+    public Trajectory getInterpolatedExitSpeedTrajectory(double exitSpeedMps, Angle2d exitAngle) {
+        return getInterpolatedExitSpeedTrajectory(exitSpeedMps, isHighArc(exitAngle));
     }
-
-    public TrajectoryWrapper getInterpolatedExitSpeedTrajectory(double exitSpeedMps, Angle2d targetExitAngle) {
-        List<Trajectory> relevantTrajectories = exitSpeedTrajectories.getRelevantTrajectories(targetExitAngle);
-        TrajectoryType trajectoryType = exitSpeedTrajectories.getTrajectoryType(targetExitAngle, exitSpeedTrajectories.getTotalTrajectories());
+    public Trajectory getInterpolatedExitSpeedTrajectory(double exitSpeedMps, boolean highArc) {
+        List<Trajectory> relevantTrajectories = exitSpeedTrajectories.getRelevantTrajectories(highArc);
 
         if (exitSpeedMps <= relevantTrajectories.get(0).exitSpeedMps)
-            return new TrajectoryWrapper(relevantTrajectories.get(0).invalidate(), TrajectoryType.LOWEST_SPEED);
+            return relevantTrajectories.get(0).invalidate();
         if (exitSpeedMps >= relevantTrajectories.get(relevantTrajectories.size() - 1).exitSpeedMps)
-            return new TrajectoryWrapper(relevantTrajectories.get(relevantTrajectories.size() - 1).invalidate(), trajectoryType);
+            return relevantTrajectories.get(relevantTrajectories.size() - 1).invalidate();
 
         for (int i = 0; i < relevantTrajectories.size() - 1; i++) {
             Trajectory lo = relevantTrajectories.get(i);
@@ -85,41 +86,39 @@ public class TrajectoryLUT {
             if (exitSpeedMps >= loSpeed && exitSpeedMps <= hiSpeed) {
                 double diff = hiSpeed - loSpeed;
                 if (diff < 1e-3)
-                    return new TrajectoryWrapper(lo, trajectoryType);
+                    return lo;
                 double t = (exitSpeedMps - loSpeed) / diff;
-                return new TrajectoryWrapper(lo.lerp(hi, t), trajectoryType);
+                return lo.lerp(hi, t);
             }
         }
-        throw new IllegalStateException("this should never run in trajectoryLUT.getInterpolatedExitSpeedTrajectory() | exitSpeedMPS: " + exitSpeedMps + " | targetExitAngleDeg: " + targetExitAngle.degrees() + " | exitSpeedTrajectories: " + exitSpeedTrajectories);
+        throw new IllegalStateException("this should never run in trajectoryLUT.getInterpolatedExitSpeedTrajectory() | exitSpeedMPS: " + exitSpeedMps + " | highArc: " + highArc + " | exitSpeedTrajectories: " + exitSpeedTrajectories);
     }
 
-    public TrajectoryWrapper getInterpolatedExitAngleTrajectory(Angle2d exitAngle) {
+    public Trajectory getInterpolatedExitAngleTrajectory(Angle2d exitAngle) {
         if (exitAngle.radians() <= exitAngTrajectories.get(0).exitAngle.radians())
-            return new TrajectoryWrapper(exitAngTrajectories.get(0), TrajectoryType.LOW_ARC);
+            return exitAngTrajectories.get(0);
         if (exitAngle.radians() >= exitAngTrajectories.get(exitAngTrajectories.size() - 1).exitAngle.radians())
-            return new TrajectoryWrapper(exitAngTrajectories.get(exitAngTrajectories.size() - 1), TrajectoryType.HIGH_ARC);
+            return exitAngTrajectories.get(exitAngTrajectories.size() - 1);
 
 
         for (int i = 0; i < exitAngTrajectories.size() - 1; i++) {
             Trajectory lo = exitAngTrajectories.get(i);
             Trajectory hi = exitAngTrajectories.get(i + 1);
 
-            TrajectoryType loType = exitSpeedTrajectories.getTrajectoryType(lo.exitAngle, exitSpeedTrajectories.getTotalTrajectories());
-            TrajectoryType hiType = exitSpeedTrajectories.getTrajectoryType(hi.exitAngle, exitSpeedTrajectories.getTotalTrajectories());
 
             if (exitAngle.radians() >= lo.exitAngle.radians() && exitAngle.radians() <= hi.exitAngle.radians()) {
                 double diff = hi.exitAngle.radians() - lo.exitAngle.radians();
                 if (diff < 1e-3)
-                    return new TrajectoryWrapper(lo, loType);
+                    return lo;
                 double t = (exitAngle.radians() - lo.exitAngle.radians()) / diff;
-                return new TrajectoryWrapper(lo, loType).lerp(new TrajectoryWrapper(hi, hiType), t);
+                return lo.lerp(hi, t);
             }
         }
         throw new IllegalStateException("this should never run in trajectoryLUT.getInterpolatedExitAngleTrajectory() | exitAngle: " + exitAngle + " | exitAngTrajectories: " + exitAngTrajectories);
     }
 
-    public boolean exitSpeedInRange(double exitSpeedMps, Angle2d targetExitAngle) {
-        return exitSpeedMps >= getMinExitSpeedMps() && exitSpeedMps <= getMaxExitSpeedMps(targetExitAngle);
+    public boolean exitSpeedInRange(double exitSpeedMps, Angle2d exitAngle) {
+        return exitSpeedMps >= getMinExitSpeedMps() && exitSpeedMps <= getMaxExitSpeedMps(exitAngle);
     }
     public boolean exitAngleInRange(Angle2d exitAngle) {
         return exitAngle.radians() >= getMinExitAngle().radians() && exitAngle.radians() <= getMaxExitAngle().radians();
@@ -131,14 +130,18 @@ public class TrajectoryLUT {
     public double getMinExitSpeedMps() {
         return exitSpeedTrajectories.getLowestSpeedTrajectory().exitSpeedMps;
     }
-    public double getMaxExitSpeedMps(Angle2d targetExitAngle) {
-        return exitSpeedTrajectories.getHighestSpeedTrajectory(targetExitAngle).exitSpeedMps;
+    public double getMaxExitSpeedMps(Angle2d exitAngle) {
+    return exitSpeedTrajectories.getHighestSpeedTrajectory(isHighArc(exitAngle)).exitSpeedMps;
     }
     public Angle2d getMinExitAngle() {
         return exitAngTrajectories.get(0).exitAngle;
     }
     public Angle2d getMaxExitAngle() {
         return exitAngTrajectories.get(exitAngTrajectories.size() - 1).exitAngle;
+    }
+
+    public boolean isHighArc(Angle2d exitAngle) {
+        return exitAngle.radians() > exitSpeedTrajectories.getLowestSpeedTrajectory().exitAngle.radians();
     }
 
     @NonNull

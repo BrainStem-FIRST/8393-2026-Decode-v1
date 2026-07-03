@@ -15,11 +15,22 @@ public class TrajectoryLoader {
 
     public static Trajectory loadTrajectory(JSONObject json, double dragCoeff, double magnusCoeff, double magnusPower) {
         try {
+            if (!json.has("exitAngle"))
+                throw new IllegalArgumentException("trajectory json does not have exit angle: " + json);
+            if (!json.has("speed"))
+                throw new IllegalArgumentException("trajectory json does not have speed: " + json);
+            if (!json.has("tof"))
+                throw new IllegalArgumentException("trajectory json does not have tof: " + json);
+            if (!json.has("speedMOE"))
+                throw new IllegalArgumentException("trajectory json does not have speedMOE: " + json);
+            if (!json.has("angleMOE"))
+                throw new IllegalArgumentException("trajectory json does not have angleMOE: " + json);
+
             double exitAngleDeg = json.getDouble("exitAngle");
             double speed = json.getDouble("speed");
             double timeOfFlight = json.getDouble("tof");
-            double speedMoe = optDouble(json, 0.0, "speedMOE", "speedMoe");
-            double angleMoeDeg = optDouble(json, 0.0, "angleMOE", "angleMoe");
+            double speedMoe = json.getDouble("speedMOE");
+            double angleMoeDeg = json.getDouble("angleMOE");
 
             return new Trajectory(
                     dragCoeff,
@@ -29,19 +40,25 @@ public class TrajectoryLoader {
                     Angle2d.fromDegrees(exitAngleDeg),
                     timeOfFlight,
                     speedMoe,
-                    Math.toRadians(angleMoeDeg),
+                    Angle2d.fromDegrees(angleMoeDeg),
                     true
             );
         } catch (JSONException e) {
             e.printStackTrace();
-            return null;
+            throw new RuntimeException("JSON exception when calling loadTrajectory");
         }
     }
 
     public static TrajectoryLUT loadTrajectoryLUT(JSONObject groupJson, double dy, double dragCoeff, double magnusCoeff, double magnusPower) {
         try {
             if (!groupJson.has("dx"))
-                return null;
+                throw new IllegalArgumentException("groupJSON is invalid. no dx key. json: " + groupJson);
+            if (!groupJson.has("trajectories"))
+                throw new IllegalArgumentException("groupJSON is invalid. no trajectories key. json: " + groupJson);
+            if (!groupJson.has("optimalHighArcTrajectoryIndex"))
+                throw new IllegalArgumentException("groupJSON is invalid. no optimalHighArcTrajectoryIndex key. json: " + groupJson);
+            if (!groupJson.has("optimalLowArcTrajectoryIndex"))
+                throw new IllegalArgumentException("groupJSON is invalid. no optimalLowArcTrajectoryIndex key. json: " + groupJson);
 
             double dx = groupJson.getDouble("dx");
             JSONArray trajectoryArray = groupJson.getJSONArray("trajectories");
@@ -50,24 +67,26 @@ public class TrajectoryLoader {
             for (int i = 0; i < trajectoryArray.length(); i++) {
                 JSONObject trajJson = trajectoryArray.getJSONObject(i);
                 Trajectory trajectory = loadTrajectory(trajJson, dragCoeff, magnusCoeff, magnusPower);
-                if (trajectory == null)
-                    return null;
                 trajectories.add(trajectory);
             }
 
             if (trajectories.isEmpty())
                 return null;
 
-            int optimalIndex = resolveOptimalTrajectoryIndex(groupJson, trajectories);
-            if (optimalIndex < 0 || optimalIndex >= trajectories.size())
-                return null;
+            int optimalHighArcIndex = groupJson.getInt("optimalHighArcTrajectoryIndex");
+            int optimalLowArcIndex = groupJson.getInt("optimalLowArcTrajectoryIndex");
+            if (optimalHighArcIndex < 0 || optimalHighArcIndex >= trajectories.size())
+                throw new IllegalArgumentException("JSON file has invalid optimal high arc index at " + dx + "meters. " + optimalHighArcIndex + " must be >= 0 and < " + trajectories.size());
+            if (optimalLowArcIndex < 0 || optimalLowArcIndex >= trajectories.size())
+                throw new IllegalArgumentException("JSON file has invalid optimal low arc index at " + dx + "meters. " + optimalLowArcIndex + " must be >= 0 and < " + trajectories.size());
 
             return new TrajectoryLUT(
                     dx,
                     dy,
                     dragCoeff,
                     magnusCoeff,
-                    optimalIndex,
+                    optimalHighArcIndex,
+                    optimalLowArcIndex,
                     trajectories
             );
         } catch (JSONException e) {
@@ -78,6 +97,17 @@ public class TrajectoryLoader {
 
     public static TrajectoryDistanceLUT loadTrajectoryDistanceLUT(JSONObject root) {
         try {
+            if (!root.has("dy"))
+                throw new IllegalArgumentException("trajectoryDistanceLUT json does not have dy: " + root);
+            if (!root.has("dragCoeff"))
+                throw new IllegalArgumentException("trajectoryDistanceLUT json does not have dragCoeff: " + root);
+            if (!root.has("magnusCoeff"))
+                throw new IllegalArgumentException("trajectoryDistanceLUT json does not have magnusCoeff: " + root);
+            if (!root.has("magnusPower"))
+                throw new IllegalArgumentException("trajectoryDistanceLUT json does not have magnusPower: " + root);
+            if (!root.has("groups"))
+                throw new IllegalArgumentException("trajectoryDistanceLUT json does not have groups: " + root);
+
             double dy = root.getDouble("dy");
             double dragCoeff = root.getDouble("dragCoeff");
             double magnusCoeff = root.getDouble("magnusCoeff");
@@ -86,9 +116,11 @@ public class TrajectoryLoader {
             ArrayList<TrajectoryLUT> trajectoryLUTs = new ArrayList<>();
 
             for (int i = 0; i < groups.length(); i++) {
-                TrajectoryLUT trajectoryLUT = loadTrajectoryLUT(groups.getJSONObject(i), dy, dragCoeff, magnusCoeff, magnusPower);
-                if (trajectoryLUT != null)
-                    trajectoryLUTs.add(trajectoryLUT);
+                JSONObject trajectoryLUTJson = groups.getJSONObject(i);
+                TrajectoryLUT trajectoryLUT = loadTrajectoryLUT(trajectoryLUTJson, dy, dragCoeff, magnusCoeff, magnusPower);
+                if (trajectoryLUT == null)
+                    throw new IllegalStateException("trajectoryLUT is null when loading from JSONObject root. trajectoryLUT json: " + trajectoryLUTJson);
+                trajectoryLUTs.add(trajectoryLUT);
             }
 
             if (trajectoryLUTs.isEmpty())
@@ -143,25 +175,6 @@ public class TrajectoryLoader {
         } catch (Exception e) {
             throw new RuntimeException("Failed to read JSON file: " + filepath, e);
         }
-    }
-
-    private static int resolveOptimalTrajectoryIndex(JSONObject groupJson, ArrayList<Trajectory> trajectories) {
-        if (groupJson.has("optimalTrajectoryIndex"))
-            return groupJson.optInt("optimalTrajectoryIndex");
-        if (groupJson.has("biggestMOETrajectory"))
-            return groupJson.optInt("biggestMOETrajectory");
-
-        int bestIndex = 0;
-        double bestMoe = -1.0;
-        for (int i = 0; i < trajectories.size(); i++) {
-            Trajectory trajectory = trajectories.get(i);
-            double combinedMoe = trajectory.exitSpeedMOE * trajectory.exitAngleMOERad;
-            if (combinedMoe > bestMoe) {
-                bestMoe = combinedMoe;
-                bestIndex = i;
-            }
-        }
-        return bestIndex;
     }
 
     private static double optDouble(JSONObject json, double defaultValue, String... keys) throws JSONException {

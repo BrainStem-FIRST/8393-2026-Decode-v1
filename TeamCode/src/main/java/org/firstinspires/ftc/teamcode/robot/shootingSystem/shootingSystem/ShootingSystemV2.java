@@ -66,11 +66,9 @@ public class ShootingSystemV2 extends ShootingSystem {
                     new Vec2d(robotVelocityMps.x, robotVelocityMps.y),
                     robotVelocityMps.headingRad,
                     curExitSpeedMps,
-                    v2Params.numIterations
+                    v2Params.numIterations,
+                    true
             );
-
-            if(targetingInfo == null || targetingInfo.targetTrajectory() == null)
-                return null;
 
             double targetShooterSpeedTps = getTpsFromMps(targetingInfo.targetTrajectory().exitSpeedMps);
             telemetry.addData("targetShooterSpeedTps", targetShooterSpeedTps);
@@ -80,7 +78,7 @@ public class ShootingSystemV2 extends ShootingSystem {
             double actualExitAngleRad = foundActualTrajectory ? targetingInfo.compensatedTrajectory().exitAngle.radians() : idealExitAngleRad;
             mostRecentTrajectory = useActualTrajectory ? targetingInfo.compensatedTrajectory() : targetingInfo.targetTrajectory();
 
-            double targetTurretFieldAngleRad = (useActualTrajectory ? targetingInfo.compensatedTurretFieldAngle() : targetingInfo.turretAngle()).radians();
+            double targetTurretFieldAngleRad = targetingInfo.turretAngle().radians();
 
             mostRecentLaunchData = new LaunchData(targetShooterSpeedTps, idealExitAngleRad, actualExitAngleRad, targetTurretFieldAngleRad);
             return mostRecentLaunchData;

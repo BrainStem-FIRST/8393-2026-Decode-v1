@@ -25,7 +25,6 @@ public class ReadFileTest extends OpMode {
         telemetry.addData("5m in range", lut.distanceInRange(5));
         telemetry.addData("6m in range", lut.distanceInRange(6));
 
-        telemetry.addData("optimal traj", lut.getInterpolatedOptimalTrajectory(5));
         telemetry.update();
     }
 
