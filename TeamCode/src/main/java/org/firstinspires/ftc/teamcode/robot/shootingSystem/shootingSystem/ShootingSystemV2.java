@@ -64,7 +64,7 @@ public class ShootingSystemV2 extends ShootingSystem {
                     turretPosM,
                     goalPosM,
                     new Vec2d(robotVelocityMps.x, robotVelocityMps.y),
-                    robotVelocityMps.headingRad,
+                    Angle2d.fromRadians(robotVelocityMps.headingRad),
                     curExitSpeedMps,
                     v2Params.numIterations,
                     true
@@ -78,7 +78,7 @@ public class ShootingSystemV2 extends ShootingSystem {
             double actualExitAngleRad = foundActualTrajectory ? targetingInfo.compensatedTrajectory().exitAngle.radians() : idealExitAngleRad;
             mostRecentTrajectory = useActualTrajectory ? targetingInfo.compensatedTrajectory() : targetingInfo.targetTrajectory();
 
-            double targetTurretFieldAngleRad = targetingInfo.turretAngle().radians();
+            double targetTurretFieldAngleRad = targetingInfo.turretFieldAngle().radians();
 
             mostRecentLaunchData = new LaunchData(targetShooterSpeedTps, idealExitAngleRad, actualExitAngleRad, targetTurretFieldAngleRad);
             return mostRecentLaunchData;

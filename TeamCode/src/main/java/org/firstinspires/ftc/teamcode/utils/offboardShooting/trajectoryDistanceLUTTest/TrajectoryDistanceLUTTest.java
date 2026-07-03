@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.utils.offboardShooting.opmodes;
+package org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectoryDistanceLUTTest;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.config.Config;

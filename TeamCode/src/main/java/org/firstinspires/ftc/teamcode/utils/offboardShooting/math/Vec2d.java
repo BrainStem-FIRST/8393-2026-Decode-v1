@@ -4,6 +4,7 @@ package org.firstinspires.ftc.teamcode.utils.offboardShooting.math;
  * Immutable 2D vector with {@code x} and {@code y} components.
  */
 public record Vec2d(double x, double y) {
+    public static final Vec2d kZero = Vec2d.kZero;
 
     /**
      * Adds another vector to this vector component-wise.
@@ -102,5 +103,11 @@ public record Vec2d(double x, double y) {
                 x * cos - y * sin,
                 x * sin + y * cos
         );
+    }
+    public double dist(Vec2d other) {
+        return minus(other).norm();
+    }
+    public double distSqrd(Vec2d other) {
+        return minus(other).normSqrd();
     }
 }

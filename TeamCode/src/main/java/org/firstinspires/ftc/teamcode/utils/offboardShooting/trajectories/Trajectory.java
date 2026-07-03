@@ -21,11 +21,14 @@ public class Trajectory {
     public final Angle2d exitAngleMOE;
     public final boolean onTarget;
 
+    public Trajectory(double exitSpeedMps, Angle2d exitAngle, double timeOfFlight) {
+        this(0, 0, 0, exitSpeedMps, exitAngle, timeOfFlight, 0, Angle2d.kZero, true);
+    }
     public Trajectory(
             double dragCoeff,
             double magnusCoeff,
             double magnusPower,
-            double launchSpeedMps,
+            double exitSpeedMps,
             Angle2d exitAngle,
             double timeOfFlight,
             double exitSpeedMOE,
@@ -34,7 +37,7 @@ public class Trajectory {
         this.dragCoeff = dragCoeff;
         this.magnusCoeff = magnusCoeff;
         this.magnusPower = magnusPower;
-        this.exitSpeedMps = launchSpeedMps;
+        this.exitSpeedMps = exitSpeedMps;
         this.exitAngle = exitAngle;
         this.timeOfFlight = timeOfFlight;
         this.exitSpeedMOE = exitSpeedMOE;
@@ -128,7 +131,7 @@ public class Trajectory {
         /*
          * Horizontal spin axis.
          *
-         * For turretAngle = 0:
+         * For turretFieldAngle = 0:
          * forward = +x
          * spinAxis = +y
          *

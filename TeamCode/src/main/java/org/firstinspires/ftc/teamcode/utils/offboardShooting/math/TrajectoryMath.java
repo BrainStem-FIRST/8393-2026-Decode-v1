@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.utils.offboardShooting.math;
 
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.Trajectory;
 import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.TrajectoryDistanceLUT;
-import org.firstinspires.ftc.teamcode.utils.offboardShooting.trajectories.Trajectory;
 
 /**
  * Utility methods for applying robot-motion compensation to offboard-generated
@@ -18,7 +17,7 @@ public class TrajectoryMath {
         Trajectory targetTrajectory,
         Trajectory compensatedTrajectory,
         Vec2d displacedGoal,
-        Angle2d turretAngle
+        Angle2d turretFieldAngle
     ) {}
 
     /**
@@ -61,12 +60,12 @@ public class TrajectoryMath {
 
     // TAKES EVERYTHING IN METERS
     public static TargetingInfo calculateTargetingInfo(
-        TrajectoryDistanceLUT trajectoryLUT,
+        TrajectoryDistanceLUT trajectoryDistanceLUT,
         Vec2d centerOfRotation,
         Vec2d turretPos,
         Vec2d goalPos,
         Vec2d robotLinearVel,
-        double robotAngularVelRad,
+        Angle2d robotAngularVel,
         double currentExitSpeed,
         int tofEstimationIterations,
         boolean highArc
@@ -75,14 +74,14 @@ public class TrajectoryMath {
         Vec2d robotToTurret = turretPos.minus(centerOfRotation);
         Vec2d robotToTurretPerp = robotToTurret.rotate(Angle2d.k90);
 
-        Vec2d turretVel = robotToTurretPerp.times(robotAngularVelRad).plus(robotLinearVel);
+        Vec2d turretVel = robotToTurretPerp.times(robotAngularVel.radians()).plus(robotLinearVel);
 
         Vec2d turretToGoal = goalPos.minus(turretPos);
         double startDistFromGoal = turretToGoal.norm();
 
         // Calculate ideal trajectory (by impact angle)
         TrajectoryGoalInfo trajectoryGoalInfo = computeDisplacedGoal(
-            trajectoryLUT,
+            trajectoryDistanceLUT,
             goalPos,
             turretPos,
             turretVel,

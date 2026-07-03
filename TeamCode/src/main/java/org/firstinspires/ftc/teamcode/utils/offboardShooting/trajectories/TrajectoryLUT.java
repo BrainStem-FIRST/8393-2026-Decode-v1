@@ -19,6 +19,9 @@ public class TrajectoryLUT {
     private final ExitSpeedTrajectories exitSpeedTrajectories;
     public final Trajectory optimalHighArcTrajectory, optimalLowArcTrajectory;
 
+    public TrajectoryLUT(double distFromGoal, int optimalIndex, ArrayList<Trajectory> rawTrajectories) {
+        this(distFromGoal, 0, 0, 0, optimalIndex, optimalIndex, rawTrajectories);
+    }
     public TrajectoryLUT(
             double distFromGoal,
             double relGoalHeight,

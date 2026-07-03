@@ -6,12 +6,31 @@ import java.util.ArrayList;
 import java.util.Comparator;
 
 public class TrajectoryDistanceLUT {
+    public static TrajectoryDistanceLUT fromTrajectoryLUTs(ArrayList<TrajectoryLUT> trajectoryLUTs) {
+        if (trajectoryLUTs.isEmpty())
+            throw new IllegalArgumentException("trajectoryLUTs cannot be empty");
+        if (trajectoryLUTs.size() < 2)
+            throw new IllegalArgumentException("trajectoryLUTs must contain at least 2 elements");
+
+        trajectoryLUTs.sort(Comparator.comparingDouble(t -> t.distFromGoal));
+
+        for (int i = 0; i < trajectoryLUTs.size() - 1; i++) {
+            TrajectoryLUT loLUT = trajectoryLUTs.get(i);
+            TrajectoryLUT hiLUT = trajectoryLUTs.get(i + 1);
+            if (loLUT.distFromGoal == hiLUT.distFromGoal)
+                throw new IllegalArgumentException("trajectoryLUTs must have unique distFromGoal values");
+        }
+
+        TrajectoryDistanceLUT lut = new TrajectoryDistanceLUT();
+        lut.trajectoryLUTs.addAll(trajectoryLUTs);
+        return lut;
+    }
+
     private final ArrayList<TrajectoryLUT> trajectoryLUTs;
 
     private TrajectoryDistanceLUT() {
         this.trajectoryLUTs = new ArrayList<>();
     }
-
     public Trajectory getInterpolatedOptimalTrajectory(double distFromGoal, boolean highArc) {
         if (Double.isNaN(distFromGoal))
             throw new IllegalArgumentException("dist from goal is NaN when calling getInterpolatedExitSpeedTrajectory");
@@ -137,26 +156,6 @@ public class TrajectoryDistanceLUT {
 
     private static double lerp(double a, double b, double t) {
         return a + (b - a) * t;
-    }
-
-    public static TrajectoryDistanceLUT fromTrajectoryLUTs(ArrayList<TrajectoryLUT> trajectoryLUTs) {
-        if (trajectoryLUTs.isEmpty())
-            throw new IllegalArgumentException("trajectoryLUTs cannot be empty");
-        if (trajectoryLUTs.size() < 2)
-            throw new IllegalArgumentException("trajectoryLUTs must contain at least 2 elements");
-
-        trajectoryLUTs.sort(Comparator.comparingDouble(t -> t.distFromGoal));
-
-        for (int i = 0; i < trajectoryLUTs.size() - 1; i++) {
-            TrajectoryLUT loLUT = trajectoryLUTs.get(i);
-            TrajectoryLUT hiLUT = trajectoryLUTs.get(i + 1);
-            if (loLUT.distFromGoal == hiLUT.distFromGoal)
-                throw new IllegalArgumentException("trajectoryLUTs must have unique distFromGoal values");
-        }
-
-        TrajectoryDistanceLUT lut = new TrajectoryDistanceLUT();
-        lut.trajectoryLUTs.addAll(trajectoryLUTs);
-        return lut;
     }
 
     public double getRelGoalHeight() {
