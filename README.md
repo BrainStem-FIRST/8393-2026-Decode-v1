@@ -1,4 +1,2 @@
-# Road Runner Quickstart
 
-Check out the [docs](https://rr.brott.dev/docs/v1-0/tuning/).
-
+https://github.com/user-attachments/assets/19fb81a1-7666-485a-b02b-b0e8970e2dc6
